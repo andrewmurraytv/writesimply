@@ -33,6 +33,7 @@ export default function ArticleWorkspacePage() {
 
   const hasChangesRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
+  const saveRef = useRef(null);
 
   // Load article
   useEffect(() => {
@@ -66,13 +67,16 @@ export default function ArticleWorkspacePage() {
     if (article) hasChangesRef.current = true;
   }, [title, notes, articleContent, status, tags, referenceLinks, screenshotPaths]);
 
+  // Keep saveRef updated so auto-save always uses latest state
+  useEffect(() => { saveRef.current = saveArticle; }, [saveArticle]);
+
   // Auto-save every 30 seconds
   useEffect(() => {
     autoSaveTimerRef.current = setInterval(() => {
-      if (hasChangesRef.current) saveArticle(true);
+      if (hasChangesRef.current && saveRef.current) saveRef.current(true);
     }, 30000);
     return () => clearInterval(autoSaveTimerRef.current);
-  }, [article]);
+  }, []);
 
   const saveArticle = useCallback(async (isAutoSave = false) => {
     if (!article) return;
