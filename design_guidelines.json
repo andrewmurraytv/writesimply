@@ -1,0 +1,107 @@
+{
+  "theme": "LIGHT",
+  "archetype": "Archetype 1 (Organic & Earthy) - 'The Writer's Studio'",
+  "emotional_tone": "Calm, focused, tactile, premium, zero-distraction. Inspired by Claude AI and Hemingway editor aesthetics.",
+  "colors": {
+    "background": "#FAF9F5",
+    "foreground": "#1F1E1D",
+    "card": "#FCFBF8",
+    "card_foreground": "#1F1E1D",
+    "popover": "#FAF9F5",
+    "popover_foreground": "#1F1E1D",
+    "primary": "#1F1E1D",
+    "primary_foreground": "#FAF9F5",
+    "secondary": "#F0EFEB",
+    "secondary_foreground": "#4A4541",
+    "muted": "#F0EFEB",
+    "muted_foreground": "#78716C",
+    "accent": "#C96442",
+    "accent_foreground": "#FFFFFF",
+    "destructive": "#991B1B",
+    "border": "#E6E4DD",
+    "input": "#E6E4DD",
+    "ring": "#1F1E1D"
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Manrope",
+      "weights": ["400", "700"],
+      "h1": "text-4xl sm:text-5xl tracking-tight leading-none",
+      "h2": "text-2xl sm:text-3xl tracking-tight",
+      "h3": "text-xl sm:text-2xl",
+      "description": "Used for UI headings, dashboard titles, and panel headers."
+    },
+    "body": {
+      "font_family": "Manrope",
+      "weights": ["400", "500"],
+      "base": "text-base leading-relaxed",
+      "small": "text-sm",
+      "description": "Used for UI text, labels, and metadata."
+    },
+    "editor": {
+      "font_family": "Lora",
+      "weights": ["400", "500", "600", "700"],
+      "base": "text-xl leading-loose",
+      "h1": "text-4xl sm:text-5xl font-semibold tracking-tight mb-8",
+      "h2": "text-2xl sm:text-3xl font-medium mt-12 mb-4",
+      "description": "Exclusive to the Right Panel (Medium-style Editor). Provides a classic, book-like reading and writing experience."
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "p-6 md:p-12",
+    "grid_system": "Dashboard uses a loose Bento grid (grid-cols-1 md:grid-cols-2 lg:grid-cols-3) with generous gaps (gap-8).",
+    "split_panels": "Left panel (35%, min-w 320px) / Right panel (65%). Divided by a crisp 1px border (border-[#E6E4DD]).",
+    "editor_constraints": "The writing area inside the right panel MUST have a max-width of 680px and be centered to mimic Medium's distraction-free reading measure.",
+    "alignment": "UI text strictly left-aligned. Editor body text left-aligned with a ragged right edge."
+  },
+  "components": {
+    "buttons": {
+      "primary": "Flat solid background (bg-[#1F1E1D]), text-[#FAF9F5], no shadow, rounded-md, px-6 py-3. Hover: slight opacity drop.",
+      "secondary": "Transparent background, 1px solid border (border-[#1F1E1D]), text-[#1F1E1D]. Hover: bg-[#1F1E1D] text-[#FAF9F5]."
+    },
+    "cards": {
+      "style": "Flat, 1px subtle border (border-[#E6E4DD]), background (bg-[#FCFBF8]), NO shadow. Minimalist, geometric.",
+      "hover": "Subtle background color shift to bg-[#F0EFEB]. No y-axis lift to maintain the 'flat paper' illusion."
+    },
+    "inputs": {
+      "style": "Minimalist rectangular fields, 1px border, transparent background, focus:ring-1 focus:ring-[#1F1E1D] rounded-sm.",
+      "tags": "Pill-shaped, bg-[#F0EFEB] text-[#4A4541] px-3 py-1 rounded-full text-xs font-medium border border-[#E6E4DD]."
+    },
+    "badges": {
+      "status_draft": "bg-[#E6E4DD] text-[#4A4541]",
+      "status_published": "bg-[#1F1E1D] text-[#FAF9F5]",
+      "status_review": "bg-[#C96442] text-white"
+    },
+    "drawer": {
+      "style": "Solid bg-[#FAF9F5] right-side sheet, 1px left border, aggressive drop-shadow-2xl. No glassmorphism."
+    }
+  },
+  "motion": {
+    "transitions": "Extremely subtle. transition-all duration-300 ease-in-out.",
+    "hover": "Color shifts and opacity changes only. Avoid transforms (scale, translate) to preserve the static 'paper' feel."
+  },
+  "media": {
+    "image_urls": {
+      "login_hero": {
+        "url": "https://images.unsplash.com/photo-1570626742839-59acd9822944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwd3JpdGVyJTIwd29ya3NwYWNlJTIwZGVza3xlbnwwfHx8fDE3NzY1NDMyNzl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Minimalist typewriter desk for the login page hero section."
+      },
+      "texture_bg": {
+        "url": "https://images.unsplash.com/photo-1737276681996-fb185108a48d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxiZWlnZSUyMGFic3RyYWN0JTIwdGV4dHVyZSUyMHBhcGVyfGVufDB8fHx8MTc3NjU0MzI4Mnww&ixlib=rb-4.1.0&q=85",
+        "description": "Beige abstract paper texture, can be used as an overlay (opacity-10) or auth screen background."
+      }
+    }
+  },
+  "instructions_to_main_agent": [
+    "Ensure 'Manrope' and 'Lora' fonts are imported via Google Fonts.",
+    "Do NOT use pure white (#FFFFFF) for the main app background; always use #FAF9F5 to match the Claude AI / Hemingway beige vibe.",
+    "For the Left Scratchpad Panel, use bg-[#F0EFEB] to give it a slightly recessed, 'sidebar' feel compared to the bright editor.",
+    "The Right Editor Panel MUST have a focused max-width 680px content area, centered, with large Lora typography to mimic Medium.",
+    "Ensure the split panels scroll independently (h-screen, overflow-y-auto).",
+    "Use Phosphor Icons (or Lucide) with a thin stroke-width (1.5) to maintain the minimalist aesthetic.",
+    "All form elements (inputs, textareas, dropdowns) must drop the default blue focus rings and use the dark charcoal (#1F1E1D) ring.",
+    "Do not use gradients anywhere. Stick to flat, earthy tones.",
+    "The 'Gemini Prompt Drawer' should slide out from the right, overlapping the editor, carrying a strong drop shadow.",
+    "Add 'data-testid' to all buttons, links, and inputs."
+  ]
+}
