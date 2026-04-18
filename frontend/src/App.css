@@ -1,34 +1,179 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Editor styling - Medium-like */
+.editor-textarea {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.25rem;
+    line-height: 2;
+    color: #1F1E1D;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    width: 100%;
+    min-height: calc(100vh - 200px);
+    padding: 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.editor-textarea::placeholder {
+    color: #C4C0B8;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+.editor-textarea:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Editor title */
+.editor-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #1F1E1D;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+}
+
+.editor-title::placeholder {
+    color: #C4C0B8;
+}
+
+/* Scratchpad styling */
+.scratchpad-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1F1E1D;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #E6E4DD;
+    outline: none;
+    width: 100%;
+    padding: 0.5rem 0;
+}
+
+.scratchpad-title:focus {
+    border-bottom-color: #1F1E1D;
+}
+
+.scratchpad-notes {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: #4A4541;
+    background: transparent;
+    border: 1px solid #E6E4DD;
+    border-radius: 0.375rem;
+    outline: none;
+    resize: vertical;
+    width: 100%;
+    min-height: 120px;
+    padding: 0.75rem;
+}
+
+.scratchpad-notes:focus {
+    border-color: #1F1E1D;
+}
+
+/* Tag pills */
+.tag-pill {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
+    gap: 0.25rem;
+    padding: 0.125rem 0.625rem;
+    background: #F0EFEB;
+    color: #4A4541;
+    border: 1px solid #E6E4DD;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: 'Manrope', sans-serif;
+    transition: background-color 0.2s;
+}
+
+.tag-pill:hover {
+    background: #E6E4DD;
+}
+
+/* Status badges */
+.status-idea {
+    background: #F5EDE5;
+    color: #8B7355;
+}
+
+.status-draft {
+    background: #E6E4DD;
+    color: #4A4541;
+}
+
+.status-ready {
+    background: #C96442;
     color: white;
 }
 
-.App-link {
-    color: #61dafb;
+.status-published {
+    background: #1F1E1D;
+    color: #FAF9F5;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Auto-save indicator */
+.save-indicator {
+    font-size: 0.75rem;
+    color: #78716C;
+    font-family: 'Manrope', sans-serif;
+    transition: opacity 0.3s;
+}
+
+/* Screenshot thumbnail */
+.screenshot-thumb {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+    border: 1px solid #E6E4DD;
+    transition: opacity 0.2s;
+}
+
+.screenshot-thumb:hover {
+    opacity: 0.8;
+}
+
+/* Upload zone */
+.upload-zone {
+    border: 2px dashed #E6E4DD;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+    font-family: 'Manrope', sans-serif;
+}
+
+.upload-zone:hover,
+.upload-zone.dragging {
+    border-color: #C96442;
+    background: #FDF8F5;
+}
+
+/* Split panel scrolling */
+.panel-scroll {
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+}
+
+/* Word count */
+.word-count {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.75rem;
+    color: #A8A29E;
+    letter-spacing: 0.05em;
+}
+
+/* Smooth transitions */
+.transition-subtle {
+    transition: all 0.3s ease-in-out;
 }
