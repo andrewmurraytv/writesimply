@@ -44,7 +44,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[#1F1E1D]/40" />
         <div className="relative z-10 flex flex-col justify-end p-12 pb-16">
           <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight font-[Manrope] leading-none">
-            SolopreneurWriter
+            WriteSimply
           </h1>
           <p className="mt-4 text-lg text-white/80 font-[Manrope] max-w-md">
             Your personal article workspace. Capture ideas, draft with intention, publish with clarity.
@@ -57,10 +57,10 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-10">
             <h1 className="text-3xl font-bold text-[#1F1E1D] tracking-tight font-[Manrope]">
-              SolopreneurWriter
+              WriteSimply
             </h1>
             <p className="mt-2 text-sm text-[#78716C] font-[Manrope]">
-              Your personal article workspace
+              Write simply. Publish boldly.
             </p>
           </div>
 

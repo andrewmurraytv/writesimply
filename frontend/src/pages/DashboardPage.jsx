@@ -93,7 +93,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-[#C96442]" strokeWidth={1.5} />
             <h1 className="text-lg font-bold text-[#1F1E1D] font-[Manrope] tracking-tight">
-              SolopreneurWriter
+              WriteSimply
             </h1>
           </div>
           <div className="flex items-center gap-4">

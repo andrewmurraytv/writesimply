@@ -404,7 +404,7 @@ async def shutdown():
 # ── Root ──
 @api_router.get("/")
 async def root():
-    return {"message": "SolopreneurWriter API"}
+    return {"message": "WriteSimply API"}
 
 # ── Include Router + CORS ──
 app.include_router(api_router)
