@@ -37,15 +37,22 @@ export function AuthProvider({ children }) {
   }, [checkAuth]);
 
   const login = async (email, password) => {
-    const res = await fetch(`${API}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
+    let res;
+    try {
+      res = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+    } catch (e) {
+      throw new Error("Network error. Please check your connection.");
+    }
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(formatApiErrorDetail(data.detail));
+      let errorMsg;
+      try { const data = await res.json(); errorMsg = formatApiErrorDetail(data.detail); }
+      catch { errorMsg = `Server error (${res.status})`; }
+      throw new Error(errorMsg);
     }
     const data = await res.json();
     setUser(data);
@@ -53,15 +60,22 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (email, password, name) => {
-    const res = await fetch(`${API}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password, name }),
-    });
+    let res;
+    try {
+      res = await fetch(`${API}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password, name }),
+      });
+    } catch (e) {
+      throw new Error("Network error. Please check your connection.");
+    }
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(formatApiErrorDetail(data.detail));
+      let errorMsg;
+      try { const data = await res.json(); errorMsg = formatApiErrorDetail(data.detail); }
+      catch { errorMsg = `Server error (${res.status})`; }
+      throw new Error(errorMsg);
     }
     const data = await res.json();
     setUser(data);
