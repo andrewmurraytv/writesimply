@@ -67,17 +67,6 @@ export default function ArticleWorkspacePage() {
     if (article) hasChangesRef.current = true;
   }, [title, notes, articleContent, status, tags, referenceLinks, screenshotPaths]);
 
-  // Keep saveRef updated so auto-save always uses latest state
-  useEffect(() => { saveRef.current = saveArticle; }, [saveArticle]);
-
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    autoSaveTimerRef.current = setInterval(() => {
-      if (hasChangesRef.current && saveRef.current) saveRef.current(true);
-    }, 30000);
-    return () => clearInterval(autoSaveTimerRef.current);
-  }, []);
-
   const saveArticle = useCallback(async (isAutoSave = false) => {
     if (!article) return;
     setSaving(true);
@@ -100,6 +89,17 @@ export default function ArticleWorkspacePage() {
       setSaving(false);
     }
   }, [article, id, title, notes, articleContent, status, tags, referenceLinks, screenshotPaths, apiFetch]);
+
+  // Keep saveRef updated so auto-save always uses latest state
+  useEffect(() => { saveRef.current = saveArticle; }, [saveArticle]);
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    autoSaveTimerRef.current = setInterval(() => {
+      if (hasChangesRef.current && saveRef.current) saveRef.current(true);
+    }, 30000);
+    return () => clearInterval(autoSaveTimerRef.current);
+  }, []);
 
   // Tag handling
   const addTag = (value) => {
