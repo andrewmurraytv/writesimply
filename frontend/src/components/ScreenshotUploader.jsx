@@ -56,7 +56,7 @@ export default function ScreenshotUploader({ screenshots = [], onUploaded, onRem
                 src={`${API}/files/${path}`}
                 alt={`Screenshot ${i + 1}`}
                 className="screenshot-thumb"
-                crossOrigin="use-credentials"
+                crossOrigin="anonymous"
               />
               <button
                 onClick={() => onRemove(i)}

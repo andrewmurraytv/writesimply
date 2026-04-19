@@ -412,8 +412,7 @@ app.include_router(api_router)
 frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.(emergent\.host|emergentagent\.com)",
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

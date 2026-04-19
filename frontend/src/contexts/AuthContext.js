@@ -12,13 +12,23 @@ function formatApiErrorDetail(detail) {
   return String(detail);
 }
 
+async function extractErrorMessage(res, statusFallbacks = {}) {
+  try {
+    const clone = res.clone();
+    const data = await clone.json();
+    return formatApiErrorDetail(data.detail);
+  } catch {
+    return statusFallbacks[res.status] || `Unexpected error (${res.status})`;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/auth/me`, { credentials: "include" });
+      const res = await fetch(`${API}/auth/me`);
       if (res.ok) {
         const data = await res.json();
         setUser(data);
@@ -42,17 +52,16 @@ export function AuthProvider({ children }) {
       res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
     } catch (e) {
       throw new Error("Network error. Please check your connection.");
     }
     if (!res.ok) {
-      let errorMsg;
-      try { const data = await res.json(); errorMsg = formatApiErrorDetail(data.detail); }
-      catch { errorMsg = `Server error (${res.status})`; }
-      throw new Error(errorMsg);
+      throw new Error(await extractErrorMessage(res, {
+        401: "Invalid email or password.",
+        429: "Too many attempts. Please wait and try again.",
+      }));
     }
     const data = await res.json();
     setUser(data);
@@ -65,17 +74,16 @@ export function AuthProvider({ children }) {
       res = await fetch(`${API}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, password, name }),
       });
     } catch (e) {
       throw new Error("Network error. Please check your connection.");
     }
     if (!res.ok) {
-      let errorMsg;
-      try { const data = await res.json(); errorMsg = formatApiErrorDetail(data.detail); }
-      catch { errorMsg = `Server error (${res.status})`; }
-      throw new Error(errorMsg);
+      throw new Error(await extractErrorMessage(res, {
+        400: "This email is already registered. Try signing in instead.",
+        422: "Please check your input and try again.",
+      }));
     }
     const data = await res.json();
     setUser(data);
@@ -83,19 +91,18 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await fetch(`${API}/auth/logout`, { method: "POST", credentials: "include" });
+    await fetch(`${API}/auth/logout`, { method: "POST" });
     setUser(null);
   };
 
   const apiFetch = async (url, options = {}) => {
-    let res = await fetch(url, { ...options, credentials: "include" });
+    let res = await fetch(url, { ...options });
     if (res.status === 401) {
       const refreshRes = await fetch(`${API}/auth/refresh`, {
         method: "POST",
-        credentials: "include",
       });
       if (refreshRes.ok) {
-        res = await fetch(url, { ...options, credentials: "include" });
+        res = await fetch(url, { ...options });
       } else {
         setUser(null);
         throw new Error("Session expired");
