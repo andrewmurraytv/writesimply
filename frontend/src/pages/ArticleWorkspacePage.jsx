@@ -4,10 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -131,8 +132,32 @@ export default function ArticleWorkspacePage() {
   const handleCopyForMedium = async () => {
     if (editorRef.current?.copyForMedium) {
       const ok = await editorRef.current.copyForMedium();
-      if (ok) toast.success("Copied! Paste into Medium editor.");
+      if (ok) toast.success("Copied as rich text! Paste into Medium.");
       else toast.error("Copy failed");
+    }
+  };
+
+  // Copy as Markdown
+  const handleCopyMarkdown = async () => {
+    if (editorRef.current?.copyAsMarkdown) {
+      const ok = await editorRef.current.copyAsMarkdown(title);
+      if (ok) toast.success("Copied as Markdown!");
+      else toast.error("Copy failed");
+    }
+  };
+
+  // Download as .md file
+  const handleDownloadMarkdown = () => {
+    if (editorRef.current?.getMarkdown) {
+      const md = editorRef.current.getMarkdown(title);
+      const blob = new Blob([md], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(title || "untitled").toLowerCase().replace(/\s+/g, "-")}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded as Markdown");
     }
   };
 
@@ -188,17 +213,34 @@ export default function ArticleWorkspacePage() {
           <span className="save-indicator hidden sm:block">
             {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
           </span>
-          <Button
-            data-testid="copy-for-medium"
-            onClick={handleCopyForMedium}
-            variant="ghost"
-            size="sm"
-            className="text-[#78716C] hover:text-[#1F1E1D] font-[Manrope] text-xs hidden sm:flex"
-            title="Copy article as rich text for Medium"
-          >
-            <ClipboardCopy className="w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
-            Copy for Medium
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                data-testid="export-menu"
+                variant="ghost"
+                size="sm"
+                className="text-[#78716C] hover:text-[#1F1E1D] font-[Manrope] text-xs hidden sm:flex"
+              >
+                <ClipboardCopy className="w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
+                Export
+                <ChevronDown className="w-3 h-3 ml-0.5" strokeWidth={1.5} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#FAF9F5] border-[#E6E4DD]">
+              <DropdownMenuItem data-testid="copy-for-medium" onClick={handleCopyForMedium} className="font-[Manrope] text-xs cursor-pointer">
+                <ClipboardCopy className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
+                Copy for Medium (Rich Text)
+              </DropdownMenuItem>
+              <DropdownMenuItem data-testid="copy-markdown" onClick={handleCopyMarkdown} className="font-[Manrope] text-xs cursor-pointer">
+                <FileText className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
+                Copy as Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem data-testid="download-markdown" onClick={handleDownloadMarkdown} className="font-[Manrope] text-xs cursor-pointer">
+                <FileText className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
+                Download .md file
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             data-testid="save-article-button"
             onClick={() => saveArticle(false)}

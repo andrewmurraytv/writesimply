@@ -7,6 +7,43 @@ function normalizeContent(content) {
   return content.split("\n").filter(Boolean).map(line => `<p>${line}</p>`).join("") || "<p><br></p>";
 }
 
+function htmlToMarkdown(editorEl, articleTitle) {
+  const lines = [];
+  if (articleTitle) lines.push(`# ${articleTitle}`, "");
+  const processNode = (node) => {
+    if (node.nodeType === 3) return node.textContent;
+    if (node.nodeType !== 1) return "";
+    const tag = node.tagName.toLowerCase();
+    const childText = () => Array.from(node.childNodes).map(processNode).join("");
+    switch (tag) {
+      case "h1": return `# ${childText()}\n\n`;
+      case "h2": return `## ${childText()}\n\n`;
+      case "h3": return `### ${childText()}\n\n`;
+      case "p": return `${childText()}\n\n`;
+      case "br": return "\n";
+      case "strong": case "b": return `**${childText()}**`;
+      case "em": case "i": return `*${childText()}*`;
+      case "a": return `[${childText()}](${node.getAttribute("href") || ""})`;
+      case "blockquote": return `> ${childText().trim().replace(/\n/g, "\n> ")}\n\n`;
+      case "ul": return Array.from(node.children).map(li => `- ${processNode(li).trim()}`).join("\n") + "\n\n";
+      case "ol": return Array.from(node.children).map((li, i) => `${i + 1}. ${processNode(li).trim()}`).join("\n") + "\n\n";
+      case "li": return childText();
+      case "img": return `![${node.alt || "image"}](${node.src || ""})\n\n`;
+      case "figure": {
+        const img = node.querySelector("img");
+        const caption = node.querySelector("figcaption");
+        if (img) return `![${caption?.textContent || img.alt || "image"}](${img.src || ""})\n\n`;
+        return childText();
+      }
+      case "div": return `${childText()}\n`;
+      default: return childText();
+    }
+  };
+  const body = Array.from(editorEl.childNodes).map(processNode).join("");
+  lines.push(body.replace(/\n{3,}/g, "\n\n").trim());
+  return lines.join("\n");
+}
+
 const ToolbarButton = ({ icon: Icon, onAction, active, title }) => (
   <button
     onMouseDown={(e) => { e.preventDefault(); onAction(); }}
@@ -52,6 +89,20 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
       } catch {
         return false;
       }
+    },
+    copyAsMarkdown: async (articleTitle) => {
+      if (!editorRef.current) return false;
+      const md = htmlToMarkdown(editorRef.current, articleTitle);
+      try {
+        await navigator.clipboard.writeText(md);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    getMarkdown: (articleTitle) => {
+      if (!editorRef.current) return "";
+      return htmlToMarkdown(editorRef.current, articleTitle);
     },
   }));
 
