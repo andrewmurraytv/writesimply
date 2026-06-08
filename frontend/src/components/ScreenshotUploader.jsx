@@ -1,11 +1,11 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Upload, X } from "lucide-react";
+import { Upload, X, GripVertical } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function ScreenshotUploader({ screenshots = [], onUploaded, onRemove }) {
+export default function ScreenshotUploader({ screenshots = [], onUploaded, onRemove, draggable = false }) {
   const { apiFetch } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -45,13 +45,30 @@ export default function ScreenshotUploader({ screenshots = [], onUploaded, onRem
     if (files.length > 0) uploadFile(files[0]);
   };
 
+  const handleDragStart = (e, path) => {
+    const imgUrl = `${API}/files/${path}`;
+    e.dataTransfer.setData("text/image-url", imgUrl);
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
   return (
     <div>
       {/* Thumbnails */}
       {screenshots.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3" data-testid="screenshot-thumbnails">
           {screenshots.map((path, i) => (
-            <div key={i} className="relative group" data-testid={`screenshot-${i}`}>
+            <div
+              key={i}
+              className={`relative group ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+              draggable={draggable}
+              onDragStart={draggable ? (e) => handleDragStart(e, path) : undefined}
+              data-testid={`screenshot-${i}`}
+            >
+              {draggable && (
+                <div className="absolute top-0.5 left-0.5 bg-black/40 rounded-sm p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <GripVertical className="w-3 h-3 text-white" />
+                </div>
+              )}
               <img
                 src={`${API}/files/${path}`}
                 alt={`Screenshot ${i + 1}`}
