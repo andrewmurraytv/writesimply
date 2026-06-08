@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -37,6 +37,7 @@ export default function ArticleWorkspacePage() {
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [outlineMode, setOutlineMode] = useState(false);
 
   const hasChangesRef = useRef(false);
   const autoSaveTimerRef = useRef(null);

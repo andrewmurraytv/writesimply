@@ -54,7 +54,7 @@ const ToolbarButton = ({ icon: Icon, onAction, active, title }) => (
   </button>
 );
 
-const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, articleId, focusMode = false }, ref) {
+const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, articleId, focusMode = false, outlineMode = false, onOutlineJump }, ref) {
   const editorRef = useRef(null);
   const toolbarRef = useRef(null);
   const [showToolbar, setShowToolbar] = useState(false);
@@ -62,6 +62,7 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
   const [wordCount, setWordCount] = useState(0);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [headings, setHeadings] = useState([]);
   const initializedRef = useRef(false);
   const lastArticleIdRef = useRef(null);
 
@@ -116,6 +117,7 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
       editorRef.current.innerHTML = normalizeContent(content);
       initializedRef.current = true;
       updateWordCount();
+      extractHeadings();
     }
   }, [content, articleId]);
 
@@ -126,12 +128,25 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
     }
   }, []);
 
+  const extractHeadings = useCallback(() => {
+    if (!editorRef.current) return;
+    const els = editorRef.current.querySelectorAll("h1, h2, h3");
+    const h = Array.from(els).map((el, i) => ({
+      tag: el.tagName.toLowerCase(),
+      text: el.textContent.trim(),
+      index: i,
+      element: el,
+    }));
+    setHeadings(h);
+  }, []);
+
   const handleInput = useCallback(() => {
     if (editorRef.current && onChange) {
       onChange(editorRef.current.innerHTML);
       updateWordCount();
+      extractHeadings();
     }
-  }, [onChange, updateWordCount]);
+  }, [onChange, updateWordCount, extractHeadings]);
 
   // Toolbar positioning on selection
   const checkSelection = useCallback(() => {
@@ -277,8 +292,62 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
     }
   };
 
+  const scrollToHeading = (heading) => {
+    heading.element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Place cursor at the heading
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(heading.element);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    heading.element.focus();
+    if (onOutlineJump) onOutlineJump();
+  };
+
   return (
     <div className="relative">
+      {/* Outline Mode Overlay */}
+      {outlineMode && (
+        <div className="absolute inset-0 z-30 bg-[#FAF9F5]/95 backdrop-blur-sm rounded-lg" data-testid="outline-panel">
+          <div className="py-4">
+            <p className="text-xs font-medium text-[#A8A29E] font-[Manrope] uppercase tracking-wider mb-6">Article Outline</p>
+            {headings.length === 0 ? (
+              <div className="text-sm text-[#A8A29E] font-[Manrope] italic">
+                No headings yet. Select text and use H1 or H2 in the toolbar to create structure.
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {headings.map((h, i) => (
+                  <button
+                    key={i}
+                    data-testid={`outline-heading-${i}`}
+                    onClick={() => scrollToHeading(h)}
+                    className={`w-full text-left py-2 px-3 rounded-md transition-colors hover:bg-[#F0EFEB] group font-[Lora] ${
+                      h.tag === "h1" ? "text-lg font-semibold text-[#1F1E1D]" :
+                      h.tag === "h2" ? "text-base font-medium text-[#4A4541] pl-6" :
+                      "text-sm text-[#78716C] pl-10"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className={`shrink-0 text-[0.6rem] font-[Manrope] font-bold uppercase tracking-wider ${
+                        h.tag === "h1" ? "text-[#C96442]" : "text-[#A8A29E]"
+                      }`}>{h.tag}</span>
+                      <span className="truncate">{h.text || "(empty heading)"}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mt-8 pt-4 border-t border-[#E6E4DD]">
+              <p className="text-[0.65rem] text-[#A8A29E] font-[Manrope]">
+                {headings.filter(h => h.tag === "h1").length} sections, {headings.filter(h => h.tag === "h2").length} subsections
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating Toolbar */}
       {showToolbar && (
         <div
