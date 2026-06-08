@@ -54,7 +54,7 @@ const ToolbarButton = ({ icon: Icon, onAction, active, title }) => (
   </button>
 );
 
-const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, articleId }, ref) {
+const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, articleId, focusMode = false }, ref) {
   const editorRef = useRef(null);
   const toolbarRef = useRef(null);
   const [showToolbar, setShowToolbar] = useState(false);
@@ -214,6 +214,7 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
     const imgSrc = e.dataTransfer.getData("text/image-url");
     if (imgSrc) {
       e.preventDefault();
+      const imgName = e.dataTransfer.getData("text/image-name") || "Screenshot";
       const range = document.caretRangeFromPoint(e.clientX, e.clientY);
       if (range) {
         const sel = window.getSelection();
@@ -221,11 +222,51 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
         sel.addRange(range);
       }
       document.execCommand("insertHTML", false,
-        `<figure style="margin:1.5rem 0"><img src="${imgSrc}" alt="Screenshot" style="max-width:100%;border-radius:6px;display:block;" /><figcaption style="text-align:center;font-size:0.875rem;color:#78716C;margin-top:0.5rem;font-family:Manrope,sans-serif">Screenshot</figcaption></figure><p><br></p>`
+        `<figure style="margin:1.5rem 0"><img src="${imgSrc}" alt="${imgName}" style="max-width:100%;border-radius:6px;display:block;" /><figcaption style="text-align:center;font-size:0.875rem;color:#78716C;margin-top:0.5rem;font-family:Manrope,sans-serif">${imgName}</figcaption></figure><p><br></p>`
       );
       handleInput();
     }
   };
+
+  // Focus mode: track active block
+  const [activeBlockIndex, setActiveBlockIndex] = useState(-1);
+
+  const updateActiveBlock = useCallback(() => {
+    if (!focusMode || !editorRef.current) return;
+    const sel = window.getSelection();
+    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode)) return;
+    let node = sel.anchorNode;
+    while (node && node.parentElement !== editorRef.current) node = node.parentElement;
+    if (!node) return;
+    const children = Array.from(editorRef.current.children);
+    const idx = children.indexOf(node);
+    if (idx !== -1) setActiveBlockIndex(idx);
+  }, [focusMode]);
+
+  useEffect(() => {
+    if (!focusMode) { setActiveBlockIndex(-1); return; }
+    const editor = editorRef.current;
+    if (!editor) return;
+    const handler = () => setTimeout(updateActiveBlock, 10);
+    editor.addEventListener("keyup", handler);
+    editor.addEventListener("click", handler);
+    handler();
+    return () => { editor.removeEventListener("keyup", handler); editor.removeEventListener("click", handler); };
+  }, [focusMode, updateActiveBlock]);
+
+  // Apply focus mode dimming to editor children
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    Array.from(el.children).forEach((child, i) => {
+      child.style.transition = "opacity 0.3s ease";
+      if (focusMode && activeBlockIndex >= 0) {
+        child.style.opacity = Math.abs(i - activeBlockIndex) <= 1 ? "1" : "0.15";
+      } else {
+        child.style.opacity = "1";
+      }
+    });
+  }, [focusMode, activeBlockIndex]);
 
   // Keyboard shortcuts
   const handleKeyDown = (e) => {
@@ -283,13 +324,13 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        onInput={handleInput}
+        onInput={(e) => { handleInput(); if (focusMode) updateActiveBlock(); }}
         onDrop={handleDrop}
         onDragOver={(e) => { if (e.dataTransfer.types.includes("text/image-url")) e.preventDefault(); }}
         onKeyDown={handleKeyDown}
         data-testid="editor-content"
         data-placeholder="Start writing your article..."
-        className="editor-contenteditable"
+        className={`editor-contenteditable ${focusMode ? "focus-mode-active" : ""}`}
       />
 
       {/* Word Count */}

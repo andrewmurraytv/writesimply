@@ -138,7 +138,7 @@ class ArticleUpdate(BaseModel):
     status: Optional[str] = None
     tags: Optional[List[str]] = None
     reference_links: Optional[List[dict]] = None
-    screenshot_paths: Optional[List[str]] = None
+    screenshot_paths: Optional[list] = None
 
 class PromptUpdate(BaseModel):
     content: str

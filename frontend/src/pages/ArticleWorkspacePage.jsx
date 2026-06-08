@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -34,6 +34,7 @@ export default function ArticleWorkspacePage() {
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
 
   const hasChangesRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
@@ -53,7 +54,7 @@ export default function ArticleWorkspacePage() {
           setStatus(data.status || "idea");
           setTags(data.tags || []);
           setReferenceLinks(data.reference_links || []);
-          setScreenshotPaths(data.screenshot_paths || []);
+          setScreenshotPaths((data.screenshot_paths || []).map(s => typeof s === "string" ? { path: s, name: "" } : s));
         } else {
           toast.error("Article not found");
           navigate("/");
@@ -125,8 +126,11 @@ export default function ArticleWorkspacePage() {
   const removeLink = (index) => setReferenceLinks(referenceLinks.filter((_, i) => i !== index));
 
   // Screenshots
-  const onScreenshotUploaded = (path) => setScreenshotPaths([...screenshotPaths, path]);
+  const onScreenshotUploaded = (shot) => setScreenshotPaths([...screenshotPaths, shot]);
   const removeScreenshot = (index) => setScreenshotPaths(screenshotPaths.filter((_, i) => i !== index));
+  const renameScreenshot = (index, newName) => {
+    setScreenshotPaths(screenshotPaths.map((s, i) => i === index ? { ...s, name: newName } : s));
+  };
 
   // Copy for Medium
   const handleCopyForMedium = async () => {
@@ -213,6 +217,17 @@ export default function ArticleWorkspacePage() {
           <span className="save-indicator hidden sm:block">
             {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
           </span>
+          <Button
+            data-testid="toggle-focus-mode"
+            variant="ghost"
+            size="sm"
+            onClick={() => setFocusMode(!focusMode)}
+            className={`font-[Manrope] text-xs hidden sm:flex h-8 ${focusMode ? "bg-[#1F1E1D] text-[#FAF9F5] hover:bg-[#1F1E1D]/90" : "text-[#78716C] hover:text-[#1F1E1D]"}`}
+            title="Toggle focus mode"
+          >
+            <Focus className="w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
+            Focus
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -345,6 +360,7 @@ export default function ArticleWorkspacePage() {
                 screenshots={screenshotPaths}
                 onUploaded={onScreenshotUploaded}
                 onRemove={removeScreenshot}
+                onRename={renameScreenshot}
                 draggable
               />
             </div>
@@ -410,6 +426,7 @@ export default function ArticleWorkspacePage() {
               content={articleContent}
               onChange={setArticleContent}
               articleId={id}
+              focusMode={focusMode}
             />
           </div>
         </div>
