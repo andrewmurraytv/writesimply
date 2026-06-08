@@ -18,7 +18,9 @@ async function extractErrorMessage(res, statusFallbacks = {}) {
     const data = await clone.json();
     return formatApiErrorDetail(data.detail);
   } catch {
-    return statusFallbacks[res.status] || `Unexpected error (${res.status})`;
+    if (statusFallbacks[res.status]) return statusFallbacks[res.status];
+    if (res.status >= 500) return "Something went wrong. Please try again.";
+    return `Unexpected error (${res.status})`;
   }
 }
 
@@ -59,8 +61,12 @@ export function AuthProvider({ children }) {
     }
     if (!res.ok) {
       throw new Error(await extractErrorMessage(res, {
+        400: "Invalid request. Please check your input.",
         401: "Invalid email or password.",
         429: "Too many attempts. Please wait and try again.",
+        520: "Invalid email or password.",
+        521: "Service temporarily unavailable. Please try again.",
+        522: "Connection timed out. Please try again.",
       }));
     }
     const data = await res.json();

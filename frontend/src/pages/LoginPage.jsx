@@ -114,6 +114,12 @@ export default function LoginPage() {
               <p data-testid="auth-error-message" className="text-sm text-[#991B1B] font-[Manrope]">{error}</p>
             )}
 
+            {!isRegister && error && (
+              <p className="text-xs text-[#78716C] font-[Manrope]">
+                If you forgot your password, try creating a new account with a different email.
+              </p>
+            )}
+
             <Button
               data-testid="auth-submit-button"
               type="submit"
