@@ -8,6 +8,8 @@ import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, P
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
+import PomodoroTimer from "@/components/PomodoroTimer";
+import AmbientSound from "@/components/AmbientSound";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -212,8 +214,12 @@ export default function ArticleWorkspacePage() {
           <span className="text-sm font-medium text-[#1F1E1D] font-[Manrope] truncate max-w-[200px]">
             {title || "Untitled"}
           </span>
+          <div className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-[#E6E4DD]">
+            <PomodoroTimer />
+          </div>
         </div>
         <div className="flex items-center gap-2">
+          <AmbientSound />
           <span className="save-indicator hidden sm:block">
             {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
           </span>
