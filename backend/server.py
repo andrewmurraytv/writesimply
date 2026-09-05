@@ -44,6 +44,14 @@ db = client[DB_NAME]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+@app.get("/__debug_path")
+async def __debug_path(request: Request):
+    return {
+        "path": request.url.path,
+        "root_path": request.scope.get("root_path"),
+        "raw_path": request.scope.get("raw_path"),
+    }
+
 # Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
