@@ -20,6 +20,7 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
 from typing import List, Optional
 from bson import ObjectId
+from pymongo.errors import DuplicateKeyError
 
 # Config
 MONGO_URL = os.environ['MONGO_URL']
@@ -450,28 +451,37 @@ async def seed_admin():
     existing = await db.users.find_one({"email": admin_email})
     if existing is None:
         hashed = hash_password(ADMIN_PASSWORD)
-        result = await db.users.insert_one({
-            "email": admin_email,
-            "password_hash": hashed,
-            "name": "Admin",
-            "role": "admin",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
-        user_id = str(result.inserted_id)
-        await seed_prompts_for_user(user_id)
-        logger.info(f"Admin user created: {admin_email}")
+        try:
+            result = await db.users.insert_one({
+                "email": admin_email,
+                "password_hash": hashed,
+                "name": "Admin",
+                "role": "admin",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        except DuplicateKeyError:
+            # Another concurrent cold start already created it (serverless).
+            pass
+        else:
+            user_id = str(result.inserted_id)
+            await seed_prompts_for_user(user_id)
+            logger.info(f"Admin user created: {admin_email}")
     elif not verify_password(ADMIN_PASSWORD, existing["password_hash"]):
         await db.users.update_one(
             {"email": admin_email},
             {"$set": {"password_hash": hash_password(ADMIN_PASSWORD)}}
         )
         logger.info(f"Admin password updated: {admin_email}")
-    memory_dir = str(ROOT_DIR.parent / "memory")
-    os.makedirs(memory_dir, exist_ok=True)
-    with open(f"{memory_dir}/test_credentials.md", "w") as f:
-        f.write("# Test Credentials\n\n")
-        f.write(f"## Admin\n- Email: {admin_email}\n- Password: {ADMIN_PASSWORD}\n- Role: admin\n\n")
-        f.write("## Auth Endpoints\n- POST /api/auth/register\n- POST /api/auth/login\n- POST /api/auth/logout\n- GET /api/auth/me\n- POST /api/auth/refresh\n")
+    try:
+        memory_dir = str(ROOT_DIR.parent / "memory")
+        os.makedirs(memory_dir, exist_ok=True)
+        with open(f"{memory_dir}/test_credentials.md", "w") as f:
+            f.write("# Test Credentials\n\n")
+            f.write(f"## Admin\n- Email: {admin_email}\n- Password: {ADMIN_PASSWORD}\n- Role: admin\n\n")
+            f.write("## Auth Endpoints\n- POST /api/auth/register\n- POST /api/auth/login\n- POST /api/auth/logout\n- GET /api/auth/me\n- POST /api/auth/refresh\n")
+    except OSError:
+        # Read-only filesystem (e.g. Vercel serverless) - this file is a local dev convenience only.
+        pass
 
 # ── Startup / Shutdown ──
 @app.on_event("startup")
