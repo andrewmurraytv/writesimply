@@ -4,11 +4,13 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, UploadFile, File
+from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, UploadFile, File, Form
 from fastapi.responses import Response as FastAPIResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import re
+import json
 import logging
 import uuid
 import bcrypt
@@ -27,6 +29,9 @@ JWT_ALGORITHM = "HS256"
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-sonnet-5')
+COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'false').lower() == 'true'
 STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
 APP_NAME = "solopreneur-writer"
 
@@ -41,6 +46,12 @@ api_router = APIRouter(prefix="/api")
 # Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# ── Slugify ──
+def slugify(text: str, max_len: int = 60) -> str:
+    text = (text or "").lower().strip()
+    text = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+    return text[:max_len].strip("-")
 
 # ── Object Storage ──
 storage_key = None
@@ -125,6 +136,7 @@ class LoginInput(BaseModel):
 
 class ArticleCreate(BaseModel):
     title: str = "Untitled"
+    subheadline: str = ""
     notes: str = ""
     article_content: str = ""
     status: str = "idea"
@@ -133,6 +145,7 @@ class ArticleCreate(BaseModel):
 
 class ArticleUpdate(BaseModel):
     title: Optional[str] = None
+    subheadline: Optional[str] = None
     notes: Optional[str] = None
     article_content: Optional[str] = None
     status: Optional[str] = None
@@ -162,8 +175,8 @@ async def register(input: RegisterInput, response: Response):
     user_id = str(result.inserted_id)
     access_token = create_access_token(user_id, email)
     refresh_token = create_refresh_token(user_id)
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=900, path="/")
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=604800, path="/")
     await seed_prompts_for_user(user_id)
     return {"_id": user_id, "email": email, "name": input.name, "role": "user"}
 
@@ -191,8 +204,8 @@ async def login(input: LoginInput, request: Request, response: Response):
     user_id = str(user["_id"])
     access_token = create_access_token(user_id, email)
     refresh_token = create_refresh_token(user_id)
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=900, path="/")
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=604800, path="/")
     return {"_id": user_id, "email": user["email"], "name": user.get("name", ""), "role": user.get("role", "user")}
 
 @api_router.post("/auth/logout")
@@ -220,7 +233,7 @@ async def refresh_token_endpoint(request: Request, response: Response):
             raise HTTPException(status_code=401, detail="User not found")
         user_id = str(user["_id"])
         access_token = create_access_token(user_id, user["email"])
-        response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
+        response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=900, path="/")
         return {"message": "Token refreshed"}
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Refresh token expired")
@@ -235,6 +248,7 @@ async def create_article(input: ArticleCreate, request: Request):
         "id": str(uuid.uuid4()),
         "user_id": user["_id"],
         "title": input.title,
+        "subheadline": input.subheadline,
         "notes": input.notes,
         "article_content": input.article_content,
         "status": input.status,
@@ -280,6 +294,75 @@ async def update_article(article_id: str, input: ArticleUpdate, request: Request
     article = await db.articles.find_one({"id": article_id}, {"_id": 0})
     return article
 
+@api_router.post("/articles/{article_id}/suggest-metadata")
+async def suggest_metadata(article_id: str, request: Request):
+    user = await get_current_user(request)
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="AI suggestions are not configured. Set ANTHROPIC_API_KEY in backend/.env.")
+    article = await db.articles.find_one({"id": article_id, "user_id": user["_id"]}, {"_id": 0})
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    body_text = (article.get("article_content") or article.get("notes") or "").strip()
+    if not body_text:
+        raise HTTPException(status_code=400, detail="Add some notes or article content before requesting suggestions.")
+
+    prompt = f"""You are helping a writer prepare a Medium article for publishing.
+
+Current title: {article.get('title') or '(untitled)'}
+
+Article content / notes:
+{body_text[:8000]}
+
+Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape:
+{{
+  "headlines": ["option 1", "option 2", "option 3"],
+  "subheadlines": ["option 1", "option 2"],
+  "tags": {{
+    "general": ["wide tag 1", "wide tag 2", "wide tag 3"],
+    "specific": ["specific tag 1", "specific tag 2"]
+  }}
+}}
+
+Rules:
+- headlines: 3 compelling Medium-style headline options based on the content, distinct from each other.
+- subheadlines: 2 short subtitle options (Medium's supporting line under the title, under 140 characters each).
+- tags.general: exactly 3 broad/wide topic tags a large audience would search (e.g. "Productivity", "Writing").
+- tags.specific: exactly 2 narrower tags specific to this article's actual subject.
+- All tags should follow Medium's tag conventions: 1-3 words, Title Case, no hashtags.
+- Do not repeat a tag between general and specific."""
+
+    try:
+        resp = http_requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": ANTHROPIC_MODEL,
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+    except http_requests.exceptions.RequestException as e:
+        logger.error(f"Anthropic API call failed: {e}")
+        raise HTTPException(status_code=502, detail="AI suggestion request failed. Please try again.")
+
+    data = resp.json()
+    raw_text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text").strip()
+    raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text.strip())
+    try:
+        suggestions = json.loads(raw_text)
+    except json.JSONDecodeError:
+        logger.error(f"Could not parse Claude response as JSON: {raw_text[:500]}")
+        raise HTTPException(status_code=502, detail="AI response could not be parsed. Please try again.")
+
+    return suggestions
+
 @api_router.delete("/articles/{article_id}")
 async def delete_article(article_id: str, request: Request):
     user = await get_current_user(request)
@@ -309,10 +392,14 @@ async def update_prompt(prompt_id: str, input: PromptUpdate, request: Request):
 
 # ── File Upload / Download ──
 @api_router.post("/upload")
-async def upload_file(request: Request, file: UploadFile = File(...)):
+async def upload_file(request: Request, file: UploadFile = File(...), title_hint: Optional[str] = Form(None)):
     user = await get_current_user(request)
     ext = file.filename.split(".")[-1] if "." in file.filename else "bin"
-    path = f"{APP_NAME}/uploads/{user['_id']}/{uuid.uuid4()}.{ext}"
+    original_base = file.filename.rsplit(".", 1)[0] if "." in file.filename else file.filename
+    slug = slugify(title_hint) or slugify(original_base)
+    unique_suffix = uuid.uuid4().hex[:8]
+    filename = f"{slug}-{unique_suffix}.{ext}" if slug else f"{unique_suffix}.{ext}"
+    path = f"{APP_NAME}/uploads/{user['_id']}/{filename}"
     data = await file.read()
     result = put_object(path, data, file.content_type or "application/octet-stream")
     return {"path": result["path"], "original_filename": file.filename}
@@ -379,8 +466,9 @@ async def seed_admin():
             {"$set": {"password_hash": hash_password(ADMIN_PASSWORD)}}
         )
         logger.info(f"Admin password updated: {admin_email}")
-    os.makedirs("/app/memory", exist_ok=True)
-    with open("/app/memory/test_credentials.md", "w") as f:
+    memory_dir = str(ROOT_DIR.parent / "memory")
+    os.makedirs(memory_dir, exist_ok=True)
+    with open(f"{memory_dir}/test_credentials.md", "w") as f:
         f.write("# Test Credentials\n\n")
         f.write(f"## Admin\n- Email: {admin_email}\n- Password: {ADMIN_PASSWORD}\n- Role: admin\n\n")
         f.write("## Auth Endpoints\n- POST /api/auth/register\n- POST /api/auth/login\n- POST /api/auth/logout\n- GET /api/auth/me\n- POST /api/auth/refresh\n")
@@ -412,7 +500,8 @@ app.include_router(api_router)
 frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[frontend_url],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

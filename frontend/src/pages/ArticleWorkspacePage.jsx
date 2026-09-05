@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2 } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -22,6 +22,7 @@ export default function ArticleWorkspacePage() {
 
   const [article, setArticle] = useState(null);
   const [title, setTitle] = useState("");
+  const [subheadline, setSubheadline] = useState("");
   const [notes, setNotes] = useState("");
   const [articleContent, setArticleContent] = useState("");
   const [status, setStatus] = useState("idea");
@@ -38,6 +39,9 @@ export default function ArticleWorkspacePage() {
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [outlineMode, setOutlineMode] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestions, setSuggestions] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const hasChangesRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
@@ -52,6 +56,7 @@ export default function ArticleWorkspacePage() {
           const data = await res.json();
           setArticle(data);
           setTitle(data.title || "");
+          setSubheadline(data.subheadline || "");
           setNotes(data.notes || "");
           setArticleContent(data.article_content || "");
           setStatus(data.status || "idea");
@@ -73,7 +78,7 @@ export default function ArticleWorkspacePage() {
   // Mark changes
   useEffect(() => {
     if (article) hasChangesRef.current = true;
-  }, [title, notes, articleContent, status, tags, referenceLinks, screenshotPaths]);
+  }, [title, subheadline, notes, articleContent, status, tags, referenceLinks, screenshotPaths]);
 
   const saveArticle = useCallback(async (isAutoSave = false) => {
     if (!article) return;
@@ -83,7 +88,7 @@ export default function ArticleWorkspacePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title, notes, article_content: articleContent, status, tags, reference_links: referenceLinks, screenshot_paths: screenshotPaths,
+          title, subheadline, notes, article_content: articleContent, status, tags, reference_links: referenceLinks, screenshot_paths: screenshotPaths,
         }),
       });
       if (res.ok) {
@@ -96,7 +101,7 @@ export default function ArticleWorkspacePage() {
     } finally {
       setSaving(false);
     }
-  }, [article, id, title, notes, articleContent, status, tags, referenceLinks, screenshotPaths, apiFetch]);
+  }, [article, id, title, subheadline, notes, articleContent, status, tags, referenceLinks, screenshotPaths, apiFetch]);
 
   // Keep saveRef updated
   useEffect(() => { saveRef.current = saveArticle; }, [saveArticle]);
@@ -116,6 +121,34 @@ export default function ArticleWorkspacePage() {
     setTagInput("");
   };
   const removeTag = (tag) => setTags(tags.filter((t) => t !== tag));
+
+  // AI suggestions (headline / subheadline / tags)
+  const requestSuggestions = async () => {
+    setSuggesting(true);
+    try {
+      const res = await apiFetch(`${API}/articles/${id}/suggest-metadata`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data);
+        setShowSuggestions(true);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.detail || "Failed to get suggestions");
+      }
+    } catch {
+      toast.error("Failed to get suggestions");
+    } finally {
+      setSuggesting(false);
+    }
+  };
+  const applyHeadline = (h) => setTitle(h);
+  const applySubheadline = (s) => setSubheadline(s);
+  const applyTag = (t) => { if (!tags.includes(t)) setTags([...tags, t]); };
+  const applyAllTags = () => {
+    if (!suggestions?.tags) return;
+    const all = [...(suggestions.tags.general || []), ...(suggestions.tags.specific || [])];
+    setTags([...new Set([...tags, ...all])]);
+  };
 
   // Reference links
   const addLink = () => {
@@ -309,6 +342,19 @@ export default function ArticleWorkspacePage() {
               />
             </div>
 
+            {/* Subheadline */}
+            <div>
+              <label className="block text-xs font-medium text-[#78716C] mb-1.5 font-[Manrope] uppercase tracking-wider">Subheadline</label>
+              <input
+                data-testid="scratchpad-subheadline"
+                type="text"
+                value={subheadline}
+                onChange={(e) => setSubheadline(e.target.value)}
+                placeholder="Subtitle for Medium..."
+                className="w-full text-sm px-3 py-1.5 border border-[#E6E4DD] rounded-sm font-[Manrope] focus:outline-none focus:ring-1 focus:ring-[#1F1E1D] bg-transparent"
+              />
+            </div>
+
             {/* Notes */}
             <div>
               <label className="block text-xs font-medium text-[#78716C] mb-1.5 font-[Manrope] uppercase tracking-wider">Notes</label>
@@ -369,12 +415,23 @@ export default function ArticleWorkspacePage() {
                 onRemove={removeScreenshot}
                 onRename={renameScreenshot}
                 draggable
+                titleHint={title}
               />
             </div>
 
             {/* Tags */}
             <div>
-              <label className="block text-xs font-medium text-[#78716C] mb-1.5 font-[Manrope] uppercase tracking-wider">Tags</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-[#78716C] font-[Manrope] uppercase tracking-wider">Tags</label>
+                <button
+                  data-testid="suggest-metadata-button"
+                  onClick={requestSuggestions}
+                  disabled={suggesting}
+                  className="text-xs text-[#C96442] hover:text-[#A8502F] font-[Manrope] font-medium flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Wand2 className="w-3 h-3" /> {suggesting ? "Thinking..." : "AI Suggest"}
+                </button>
+              </div>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {tags.map((tag) => (
                   <span key={tag} className="tag-pill" data-testid={`tag-${tag}`}>
@@ -393,6 +450,63 @@ export default function ArticleWorkspacePage() {
                 placeholder="Add tags (comma separated)..."
                 className="w-full text-sm px-3 py-1.5 border border-[#E6E4DD] rounded-sm font-[Manrope] focus:outline-none focus:ring-1 focus:ring-[#1F1E1D] bg-transparent"
               />
+
+              {showSuggestions && suggestions && (
+                <div className="mt-3 p-3 bg-white rounded-md border border-[#E6E4DD] space-y-3" data-testid="ai-suggestions-panel">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#1F1E1D] font-[Manrope] uppercase tracking-wider">AI Suggestions</span>
+                    <button onClick={() => setShowSuggestions(false)} className="text-[#A8A29E] hover:text-[#991B1B]" data-testid="close-suggestions"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+
+                  {suggestions.headlines?.length > 0 && (
+                    <div>
+                      <div className="text-[0.65rem] text-[#78716C] font-[Manrope] uppercase tracking-wider mb-1">Headlines</div>
+                      <div className="space-y-1">
+                        {suggestions.headlines.map((h, i) => (
+                          <button key={i} onClick={() => applyHeadline(h)} data-testid={`suggested-headline-${i}`} className="block w-full text-left text-xs px-2 py-1.5 rounded-sm bg-[#F0EFEB] hover:bg-[#E6E4DD] font-[Manrope] text-[#1F1E1D] transition-colors">
+                            {h}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {suggestions.subheadlines?.length > 0 && (
+                    <div>
+                      <div className="text-[0.65rem] text-[#78716C] font-[Manrope] uppercase tracking-wider mb-1">Subheadlines</div>
+                      <div className="space-y-1">
+                        {suggestions.subheadlines.map((s, i) => (
+                          <button key={i} onClick={() => applySubheadline(s)} data-testid={`suggested-subheadline-${i}`} className="block w-full text-left text-xs px-2 py-1.5 rounded-sm bg-[#F0EFEB] hover:bg-[#E6E4DD] font-[Manrope] text-[#1F1E1D] transition-colors">
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {suggestions.tags && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-[0.65rem] text-[#78716C] font-[Manrope] uppercase tracking-wider">Tags (Medium: 3 wide + 2 specific)</div>
+                        <button onClick={applyAllTags} data-testid="apply-all-tags" className="text-[0.65rem] text-[#C96442] hover:text-[#A8502F] font-[Manrope] font-medium">+ Add all</button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[...(suggestions.tags.general || []), ...(suggestions.tags.specific || [])].map((t, i) => (
+                          <button
+                            key={i}
+                            onClick={() => applyTag(t)}
+                            disabled={tags.includes(t)}
+                            data-testid={`suggested-tag-${t}`}
+                            className="text-xs px-2 py-1 rounded-full bg-[#F0EFEB] hover:bg-[#E6E4DD] font-[Manrope] text-[#1F1E1D] disabled:opacity-40 transition-colors"
+                          >
+                            + {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Status */}

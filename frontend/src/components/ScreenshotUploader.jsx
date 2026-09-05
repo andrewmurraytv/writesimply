@@ -5,7 +5,7 @@ import { Upload, X, GripVertical, Pencil, Check } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function ScreenshotUploader({ screenshots = [], onUploaded, onRemove, onRename, draggable = false }) {
+export default function ScreenshotUploader({ screenshots = [], onUploaded, onRemove, onRename, draggable = false, titleHint = "" }) {
   const { apiFetch } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -22,6 +22,7 @@ export default function ScreenshotUploader({ screenshots = [], onUploaded, onRem
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (titleHint.trim()) formData.append("title_hint", titleHint.trim());
       const res = await apiFetch(`${API}/upload`, {
         method: "POST",
         body: formData,

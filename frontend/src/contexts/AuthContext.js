@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/auth/me`);
+      const res = await fetch(`${API}/auth/me`, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setUser(data);
@@ -55,6 +55,7 @@ export function AuthProvider({ children }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
     } catch (e) {
       throw new Error("Network error. Please check your connection.");
@@ -81,6 +82,7 @@ export function AuthProvider({ children }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name }),
+        credentials: "include",
       });
     } catch (e) {
       throw new Error("Network error. Please check your connection.");
@@ -97,18 +99,19 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await fetch(`${API}/auth/logout`, { method: "POST" });
+    await fetch(`${API}/auth/logout`, { method: "POST", credentials: "include" });
     setUser(null);
   };
 
   const apiFetch = async (url, options = {}) => {
-    let res = await fetch(url, { ...options });
+    let res = await fetch(url, { ...options, credentials: "include" });
     if (res.status === 401) {
       const refreshRes = await fetch(`${API}/auth/refresh`, {
         method: "POST",
+        credentials: "include",
       });
       if (refreshRes.ok) {
-        res = await fetch(url, { ...options });
+        res = await fetch(url, { ...options, credentials: "include" });
       } else {
         setUser(null);
         throw new Error("Session expired");
