@@ -60,6 +60,15 @@ async def __debug_path2(request: Request):
         "raw_path": request.scope.get("raw_path"),
     }
 
+@app.api_route("/__debug_catchall/{full_path:path}", methods=["GET"])
+async def __debug_catchall(request: Request, full_path: str):
+    return {
+        "path": request.url.path,
+        "root_path": request.scope.get("root_path"),
+        "raw_path": str(request.scope.get("raw_path")),
+        "full_path_param": full_path,
+    }
+
 # Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
