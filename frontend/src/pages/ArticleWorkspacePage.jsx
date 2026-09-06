@@ -53,6 +53,8 @@ export default function ArticleWorkspacePage() {
   const [showTagBrowser, setShowTagBrowser] = useState(false);
   const [tagCatalog, setTagCatalog] = useState(null);
   const [tagSearch, setTagSearch] = useState("");
+  const [shortlist, setShortlist] = useState([]);
+  const [shortlistOnly, setShortlistOnly] = useState(true);
 
   const hasChangesRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
@@ -156,10 +158,32 @@ export default function ArticleWorkspacePage() {
     setShowTagBrowser((open) => !open);
     if (tagCatalog) return;
     try {
-      const res = await apiFetch(`${API}/medium-tags`);
-      if (res.ok) setTagCatalog(await res.json());
+      const [cat, sl] = await Promise.all([
+        apiFetch(`${API}/medium-tags`),
+        apiFetch(`${API}/tag-shortlist`),
+      ]);
+      if (cat.ok) setTagCatalog(await cat.json());
+      if (sl.ok) setShortlist((await sl.json()).tags || []);
     } catch {
       toast.error("Could not load tag data");
+    }
+  };
+
+  const toggleShortlist = async (tag) => {
+    const next = shortlist.includes(tag)
+      ? shortlist.filter((t) => t !== tag)
+      : [...shortlist, tag];
+    setShortlist(next);
+    try {
+      const res = await apiFetch(`${API}/tag-shortlist`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: next }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      toast.error("Could not save shortlist");
+      setShortlist(shortlist);
     }
   };
 
@@ -174,8 +198,11 @@ export default function ArticleWorkspacePage() {
     const q = tagSearch.trim().toLowerCase();
     return rows
       .filter((t) => !q || t.tag.toLowerCase().includes(q))
+      // A search should reach the whole catalogue, so the shortlist filter only
+      // applies while browsing.
+      .filter((t) => !shortlistOnly || q || shortlist.includes(t.tag))
       .sort((a, b) => b.value - a.value);
-  }, [tagCatalog, tagSearch]);
+  }, [tagCatalog, tagSearch, shortlistOnly, shortlist]);
 
   const applyHeadline = (h) => setTitle(h);
   const applySubheadline = (s) => setSubheadline(s);
@@ -326,22 +353,42 @@ export default function ArticleWorkspacePage() {
                 <ChevronDown className="w-3 h-3 ml-0.5" strokeWidth={1.5} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-[#FAF9F5] border-[#E6E4DD]">
-              <DropdownMenuItem data-testid="copy-for-medium" onClick={handleCopyForMedium} className="font-[Manrope] text-xs cursor-pointer">
-                <ClipboardCopy className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                Copy for Medium (Rich Text)
+            <DropdownMenuContent align="end" className="bg-[#FAF9F5] border-[#E6E4DD] w-72">
+              <DropdownMenuItem data-testid="copy-for-medium" onClick={handleCopyForMedium} className="font-[Manrope] text-xs cursor-pointer items-start py-2">
+                <ClipboardCopy className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0" strokeWidth={1.5} />
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-medium">Medium</span>
+                  <span className="text-[0.65rem] text-[#78716C] leading-snug">
+                    Rich text with title + subtitle. Paste straight into a new story.
+                  </span>
+                </span>
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="copy-html" onClick={handleCopyHtml} className="font-[Manrope] text-xs cursor-pointer">
-                <Code className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                Copy for WordPress (HTML)
+              <DropdownMenuItem data-testid="copy-html" onClick={handleCopyHtml} className="font-[Manrope] text-xs cursor-pointer items-start py-2">
+                <Code className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0" strokeWidth={1.5} />
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-medium">WordPress</span>
+                  <span className="text-[0.65rem] text-[#78716C] leading-snug">
+                    HTML. Paste into the code editor, or a Custom HTML block.
+                  </span>
+                </span>
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="copy-markdown" onClick={handleCopyMarkdown} className="font-[Manrope] text-xs cursor-pointer">
-                <FileText className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                Copy as Markdown
+              <DropdownMenuItem data-testid="copy-markdown" onClick={handleCopyMarkdown} className="font-[Manrope] text-xs cursor-pointer items-start py-2">
+                <FileText className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0" strokeWidth={1.5} />
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-medium">Markdown</span>
+                  <span className="text-[0.65rem] text-[#78716C] leading-snug">
+                    Copy for Ghost, Substack, GitHub or a notes app.
+                  </span>
+                </span>
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="download-markdown" onClick={handleDownloadMarkdown} className="font-[Manrope] text-xs cursor-pointer">
-                <FileText className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                Download .md file
+              <DropdownMenuItem data-testid="download-markdown" onClick={handleDownloadMarkdown} className="font-[Manrope] text-xs cursor-pointer items-start py-2">
+                <FileText className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0" strokeWidth={1.5} />
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-medium">Download .md</span>
+                  <span className="text-[0.65rem] text-[#78716C] leading-snug">
+                    Save the Markdown as a file.
+                  </span>
+                </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -504,9 +551,26 @@ export default function ArticleWorkspacePage() {
                     type="text"
                     value={tagSearch}
                     onChange={(e) => setTagSearch(e.target.value)}
-                    placeholder="Search tags..."
+                    placeholder="Search all tags..."
                     className="w-full text-xs px-2 py-1.5 mb-2 border border-[#E6E4DD] rounded-sm font-[Manrope] focus:outline-none focus:ring-1 focus:ring-[#1F1E1D]"
                   />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <button
+                      data-testid="toggle-shortlist-only"
+                      onClick={() => setShortlistOnly((v) => !v)}
+                      disabled={!!tagSearch.trim()}
+                      className={`text-[0.65rem] font-[Manrope] px-2 py-0.5 rounded-full transition-colors disabled:opacity-40 ${
+                        shortlistOnly && !tagSearch.trim()
+                          ? "bg-[#1F1E1D] text-[#FAF9F5]"
+                          : "bg-[#F0EFEB] text-[#4A4541] hover:bg-[#E6E4DD]"
+                      }`}
+                    >
+                      ★ My shortlist ({shortlist.length})
+                    </button>
+                    <span className="text-[0.55rem] text-[#A8A29E] font-[Manrope]">
+                      {tagSearch.trim() ? "searching all tags" : "★ to add/remove"}
+                    </span>
+                  </div>
                   {!tagCatalog ? (
                     <p className="text-[0.65rem] text-[#A8A29E] font-[Manrope]">Loading…</p>
                   ) : (
@@ -517,23 +581,32 @@ export default function ArticleWorkspacePage() {
                       </div>
                       <div className="max-h-56 overflow-y-auto divide-y divide-[#F5F4F1]">
                         {browsableTags.map((t) => (
-                          <button
-                            key={`${t.group}-${t.tag}`}
-                            onClick={() => applyTag(t.tag)}
-                            disabled={tags.includes(t.tag)}
-                            data-testid={`browse-tag-${t.tag}`}
-                            className="w-full flex items-center justify-between gap-2 text-xs px-1 py-1.5 hover:bg-[#F0EFEB] font-[Manrope] text-[#1F1E1D] disabled:opacity-40 transition-colors text-left"
-                          >
-                            <span className="truncate">
-                              {t.tag}
-                              <span className={`ml-1.5 text-[0.55rem] uppercase ${t.group === "topic" ? "text-[#C96442]" : "text-[#A8A29E]"}`}>
-                                {t.group}
+                          <div key={`${t.group}-${t.tag}`} className="flex items-center gap-1 hover:bg-[#F0EFEB] transition-colors">
+                            <button
+                              onClick={() => toggleShortlist(t.tag)}
+                              data-testid={`star-tag-${t.tag}`}
+                              title={shortlist.includes(t.tag) ? "Remove from shortlist" : "Add to shortlist"}
+                              className={`shrink-0 px-1 text-xs ${shortlist.includes(t.tag) ? "text-[#C96442]" : "text-[#D6D3CE] hover:text-[#A8A29E]"}`}
+                            >
+                              {shortlist.includes(t.tag) ? "★" : "☆"}
+                            </button>
+                            <button
+                              onClick={() => applyTag(t.tag)}
+                              disabled={tags.includes(t.tag)}
+                              data-testid={`browse-tag-${t.tag}`}
+                              className="flex-1 min-w-0 flex items-center justify-between gap-2 text-xs px-1 py-1.5 font-[Manrope] text-[#1F1E1D] disabled:opacity-40 text-left"
+                            >
+                              <span className="truncate">
+                                {t.tag}
+                                <span className={`ml-1.5 text-[0.55rem] uppercase ${t.group === "topic" ? "text-[#C96442]" : "text-[#A8A29E]"}`}>
+                                  {t.group}
+                                </span>
                               </span>
-                            </span>
-                            <span className="shrink-0 text-[0.6rem] text-[#78716C] tabular-nums">
-                              {formatCount(t.followers)} · {t.value}
-                            </span>
-                          </button>
+                              <span className="shrink-0 text-[0.6rem] text-[#78716C] tabular-nums">
+                                {formatCount(t.followers)} · {t.value}
+                              </span>
+                            </button>
+                          </div>
                         ))}
                         {browsableTags.length === 0 && (
                           <p className="text-[0.65rem] text-[#A8A29E] font-[Manrope] py-2">No tags match.</p>

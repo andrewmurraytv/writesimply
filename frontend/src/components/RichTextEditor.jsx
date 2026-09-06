@@ -307,6 +307,11 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
 
   useEffect(() => {
     if (!focusMode) { setActiveBlockIndex(-1); return; }
+    // Without this the mode looks broken: dimming only starts once there is a
+    // cursor in the editor, so toggling it while focus is elsewhere changes
+    // nothing on screen. Default to the first block; the real position takes
+    // over on the first click or keystroke.
+    setActiveBlockIndex((i) => (i >= 0 ? i : 0));
     const editor = editorRef.current;
     if (!editor) return;
     const handler = () => setTimeout(updateActiveBlock, 10);

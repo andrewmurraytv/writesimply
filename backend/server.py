@@ -62,6 +62,16 @@ def _load_medium_tags():
         logger.warning(f"Medium tag data unavailable: {e}")
         return {"tags": []}
 
+# Starting shortlist for a build-in-public / earn-income writer: strong-ratio topics
+# that fit that subject, plus the niche tags for it. Editable per user - this is only
+# what someone sees before they have saved a list of their own.
+DEFAULT_TAG_SHORTLIST = [
+    "Software Engineering", "Ideas", "Coding", "Future", "Productivity",
+    "Economics", "Work", "Freelancing", "Media", "AI Agent", "Programming", "Money",
+    "Earn Money Online", "Make Money Online", "Side Hustle", "Passive Income",
+    "Affiliate Marketing", "Vibe Coding", "Claude Code", "Solopreneur", "Reddit",
+]
+
 MEDIUM_TAG_DATA = _load_medium_tags()
 # Two groups, deliberately kept apart: "tags" are official Medium Topics with
 # topic-scale follower counts, "niche_tags" are ordinary tags read off
@@ -456,6 +466,25 @@ async def delete_article(article_id: str, request: Request):
     return {"message": "Article deleted"}
 
 # ── Prompts ──
+class ShortlistUpdate(BaseModel):
+    tags: List[str]
+
+@api_router.get("/tag-shortlist")
+async def get_tag_shortlist(request: Request):
+    user = await get_current_user(request)
+    saved = user.get("tag_shortlist")
+    return {
+        "tags": saved if saved is not None else DEFAULT_TAG_SHORTLIST,
+        "is_default": saved is None,
+    }
+
+@api_router.put("/tag-shortlist")
+async def put_tag_shortlist(input: ShortlistUpdate, request: Request):
+    user = await get_current_user(request)
+    tags = [t.strip() for t in input.tags if t and t.strip()][:100]
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"tag_shortlist": tags}})
+    return {"tags": tags, "is_default": False}
+
 @api_router.get("/medium-tags")
 async def list_medium_tags(request: Request):
     """The tag reference data, so the UI can let writers browse and compare tags."""
