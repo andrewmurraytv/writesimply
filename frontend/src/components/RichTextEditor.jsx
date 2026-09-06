@@ -123,8 +123,11 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
 
   const updateWordCount = useCallback(() => {
     if (editorRef.current) {
-      const text = editorRef.current.textContent.trim();
-      setWordCount(text ? text.split(/\s+/).length : 0);
+      // innerText, not textContent: textContent joins block elements with no
+      // separator, so the last word of one paragraph merges with the first word
+      // of the next ("...world" + "Foo..." = one word) and the count runs low.
+      const text = (editorRef.current.innerText || "").trim();
+      setWordCount(text ? text.split(/\s+/).filter(Boolean).length : 0);
     }
   }, []);
 

@@ -51,6 +51,32 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ── Medium tag reference data ──
+# Snapshot of the top-100 Medium tags (followers / stories / followers-per-story).
+# Used to ground tag suggestions in real audience numbers instead of guesses.
+def _load_medium_tags():
+    try:
+        with open(ROOT_DIR / "medium_tags.json") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning(f"Medium tag data unavailable: {e}")
+        return {"tags": []}
+
+MEDIUM_TAG_DATA = _load_medium_tags()
+MEDIUM_TAGS_BY_NAME = {t["tag"].lower(): t for t in MEDIUM_TAG_DATA.get("tags", [])}
+
+def tag_stats(name: str):
+    """Follower/competition stats for a tag, when it's in the top-100 snapshot."""
+    t = MEDIUM_TAGS_BY_NAME.get((name or "").strip().lower())
+    if not t:
+        return None
+    return {
+        "followers": t["followers"],
+        "stories": t["stories"],
+        "value": t["value"],
+        "rank": t["rank"],
+    }
+
 # ── Slugify ──
 def slugify(text: str, max_len: int = 60) -> str:
     text = (text or "").lower().strip()
@@ -311,12 +337,24 @@ async def suggest_metadata(article_id: str, request: Request):
     if not body_text:
         raise HTTPException(status_code=400, detail="Add some notes or article content before requesting suggestions.")
 
+    tag_reference = "\n".join(
+        f"- {t['tag']}: {t['followers']:,} followers, {t['stories']:,} stories, "
+        f"{t['value']} followers per story"
+        for t in MEDIUM_TAG_DATA.get("tags", [])
+    )
+
     prompt = f"""You are helping a writer prepare a Medium article for publishing.
 
 Current title: {article.get('title') or '(untitled)'}
 
 Article content / notes:
 {body_text[:8000]}
+
+Reference data — the top 100 Medium tags right now. "followers per story" is the
+demand-to-competition ratio: a high number means a large audience relative to how
+much is already published under that tag (easier to get seen), a low number means
+a crowded tag.
+{tag_reference}
 
 Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape:
 {{
@@ -325,16 +363,22 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape
   "tags": {{
     "general": ["wide tag 1", "wide tag 2", "wide tag 3"],
     "specific": ["specific tag 1", "specific tag 2"]
-  }}
+  }},
+  "tag_rationale": "one or two sentences explaining the mix you chose"
 }}
 
 Rules:
 - headlines: 3 compelling Medium-style headline options based on the content, distinct from each other.
 - subheadlines: 2 short subtitle options (Medium's supporting line under the title, under 140 characters each).
-- tags.general: exactly 3 broad/wide topic tags a large audience would search (e.g. "Productivity", "Writing").
-- tags.specific: exactly 2 narrower tags specific to this article's actual subject.
-- All tags should follow Medium's tag conventions: 1-3 words, Title Case, no hashtags.
-- Do not repeat a tag between general and specific."""
+- Medium allows 5 tags per story, so return exactly 3 general + 2 specific.
+- tags.general: 3 broad, high-volume tags drawn from the reference list above wherever
+  a genuinely relevant one exists. Prefer tags with a high followers-per-story ratio
+  over the single biggest tag — a huge crowded tag buries a new story.
+- tags.specific: 2 narrower tags that match this article's actual subject. These may be
+  outside the reference list. They will get fewer views but are far easier to rank in.
+- Relevance beats popularity: never pick a big tag that doesn't genuinely fit the piece.
+  Prefer a precise tag over a vague one ("Content Marketing", not "Marketing").
+- All tags follow Medium conventions: 1-3 words, Title Case, no hashtags, no repeats."""
 
     try:
         resp = http_requests.post(
@@ -365,6 +409,18 @@ Rules:
         logger.error(f"Could not parse Claude response as JSON: {raw_text[:500]}")
         raise HTTPException(status_code=502, detail="AI response could not be parsed. Please try again.")
 
+    # Attach real audience numbers so the UI can show the volume mix rather than
+    # asking the user to trust the model's sense of how big a tag is.
+    tags = suggestions.get("tags") or {}
+    suggestions["tag_stats"] = {
+        name: stats
+        for name in (tags.get("general") or []) + (tags.get("specific") or [])
+        if (stats := tag_stats(name))
+    }
+    suggestions["tag_data_source"] = {
+        "url": MEDIUM_TAG_DATA.get("source"),
+        "snapshot_date": MEDIUM_TAG_DATA.get("snapshot_date"),
+    }
     return suggestions
 
 @api_router.delete("/articles/{article_id}")

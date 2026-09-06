@@ -1,0 +1,707 @@
+{
+  "source": "https://medium.oldcai.com/",
+  "description": "Top 100 Medium tags. value = followers per story (demand vs competition); higher value means a larger audience relative to how much is already published under that tag.",
+  "snapshot_date": "2026-09-06",
+  "tags": [
+    {
+      "rank": 1,
+      "tag": "Technology",
+      "value": 5.32,
+      "followers": 11700000,
+      "stories": 2200000
+    },
+    {
+      "rank": 2,
+      "tag": "Programming",
+      "value": 20.52,
+      "followers": 8700000,
+      "stories": 424000
+    },
+    {
+      "rank": 3,
+      "tag": "Money",
+      "value": 9.7,
+      "followers": 8100000,
+      "stories": 835000
+    },
+    {
+      "rank": 4,
+      "tag": "Self Improvement",
+      "value": 9.68,
+      "followers": 7900000,
+      "stories": 816000
+    },
+    {
+      "rank": 5,
+      "tag": "Psychology",
+      "value": 18.76,
+      "followers": 7900000,
+      "stories": 421000
+    },
+    {
+      "rank": 6,
+      "tag": "Data Science",
+      "value": 21.34,
+      "followers": 7000000,
+      "stories": 328000
+    },
+    {
+      "rank": 7,
+      "tag": "Science",
+      "value": 29.36,
+      "followers": 6900000,
+      "stories": 235000
+    },
+    {
+      "rank": 8,
+      "tag": "Writing",
+      "value": 8.08,
+      "followers": 6600000,
+      "stories": 817000
+    },
+    {
+      "rank": 9,
+      "tag": "Business",
+      "value": 8.53,
+      "followers": 6600000,
+      "stories": 774000
+    },
+    {
+      "rank": 10,
+      "tag": "Mental Health",
+      "value": 10.77,
+      "followers": 5900000,
+      "stories": 548000
+    },
+    {
+      "rank": 11,
+      "tag": "Relationships",
+      "value": 10.88,
+      "followers": 5800000,
+      "stories": 533000
+    },
+    {
+      "rank": 12,
+      "tag": "Health",
+      "value": 7.53,
+      "followers": 5800000,
+      "stories": 770000
+    },
+    {
+      "rank": 13,
+      "tag": "Design",
+      "value": 14.4,
+      "followers": 5600000,
+      "stories": 389000
+    },
+    {
+      "rank": 14,
+      "tag": "Artificial Intelligence",
+      "value": 12.94,
+      "followers": 5500000,
+      "stories": 425000
+    },
+    {
+      "rank": 15,
+      "tag": "Productivity",
+      "value": 14.56,
+      "followers": 5400000,
+      "stories": 371000
+    },
+    {
+      "rank": 16,
+      "tag": "Life",
+      "value": 5.3,
+      "followers": 5300000,
+      "stories": 1000000
+    },
+    {
+      "rank": 17,
+      "tag": "Politics",
+      "value": 7.4,
+      "followers": 4500000,
+      "stories": 608000
+    },
+    {
+      "rank": 18,
+      "tag": "Machine Learning",
+      "value": 13.06,
+      "followers": 4400000,
+      "stories": 337000
+    },
+    {
+      "rank": 19,
+      "tag": "Culture",
+      "value": 15.58,
+      "followers": 4300000,
+      "stories": 276000
+    },
+    {
+      "rank": 20,
+      "tag": "Humor",
+      "value": 15.5,
+      "followers": 4200000,
+      "stories": 271000
+    },
+    {
+      "rank": 21,
+      "tag": "Education",
+      "value": 6.56,
+      "followers": 4099999,
+      "stories": 625000
+    },
+    {
+      "rank": 22,
+      "tag": "Cryptocurrency",
+      "value": 4.48,
+      "followers": 4000000,
+      "stories": 892000
+    },
+    {
+      "rank": 23,
+      "tag": "History",
+      "value": 14.96,
+      "followers": 3800000,
+      "stories": 254000
+    },
+    {
+      "rank": 24,
+      "tag": "Social Media",
+      "value": 8.68,
+      "followers": 3800000,
+      "stories": 438000
+    },
+    {
+      "rank": 25,
+      "tag": "Startup",
+      "value": 5.85,
+      "followers": 3700000,
+      "stories": 633000
+    },
+    {
+      "rank": 26,
+      "tag": "Books",
+      "value": 7.91,
+      "followers": 3700000,
+      "stories": 468000
+    },
+    {
+      "rank": 27,
+      "tag": "Lifestyle",
+      "value": 13.09,
+      "followers": 3600000,
+      "stories": 275000
+    },
+    {
+      "rank": 28,
+      "tag": "Creativity",
+      "value": 12.59,
+      "followers": 3500000,
+      "stories": 278000
+    },
+    {
+      "rank": 29,
+      "tag": "Software Development",
+      "value": 11.15,
+      "followers": 3400000,
+      "stories": 305000
+    },
+    {
+      "rank": 30,
+      "tag": "Travel",
+      "value": 5.66,
+      "followers": 3300000,
+      "stories": 583000
+    },
+    {
+      "rank": 31,
+      "tag": "Leadership",
+      "value": 11.07,
+      "followers": 3100000,
+      "stories": 280000
+    },
+    {
+      "rank": 32,
+      "tag": "Entrepreneurship",
+      "value": 6.11,
+      "followers": 3000000,
+      "stories": 491000
+    },
+    {
+      "rank": 33,
+      "tag": "Art",
+      "value": 10.71,
+      "followers": 3000000,
+      "stories": 280000
+    },
+    {
+      "rank": 34,
+      "tag": "Music",
+      "value": 8.0,
+      "followers": 3000000,
+      "stories": 375000
+    },
+    {
+      "rank": 35,
+      "tag": "Python",
+      "value": 11.79,
+      "followers": 2900000,
+      "stories": 246000
+    },
+    {
+      "rank": 36,
+      "tag": "Photography",
+      "value": 13.46,
+      "followers": 2800000,
+      "stories": 208000
+    },
+    {
+      "rank": 37,
+      "tag": "Software Engineering",
+      "value": 25.23,
+      "followers": 2700000,
+      "stories": 107000
+    },
+    {
+      "rank": 38,
+      "tag": "Mindfulness",
+      "value": 12.33,
+      "followers": 2700000,
+      "stories": 219000
+    },
+    {
+      "rank": 39,
+      "tag": "Women",
+      "value": 11.42,
+      "followers": 2500000,
+      "stories": 219000
+    },
+    {
+      "rank": 40,
+      "tag": "Deep Learning",
+      "value": 25.81,
+      "followers": 2400000,
+      "stories": 93000
+    },
+    {
+      "rank": 41,
+      "tag": "Marketing",
+      "value": 4.76,
+      "followers": 2400000,
+      "stories": 504000
+    },
+    {
+      "rank": 42,
+      "tag": "JavaScript",
+      "value": 8.36,
+      "followers": 2300000,
+      "stories": 275000
+    },
+    {
+      "rank": 43,
+      "tag": "Food",
+      "value": 8.42,
+      "followers": 2300000,
+      "stories": 273000
+    },
+    {
+      "rank": 44,
+      "tag": "UX",
+      "value": 10.65,
+      "followers": 2300000,
+      "stories": 216000
+    },
+    {
+      "rank": 45,
+      "tag": "Coding",
+      "value": 15.22,
+      "followers": 2100000,
+      "stories": 138000
+    },
+    {
+      "rank": 46,
+      "tag": "Film",
+      "value": 13.04,
+      "followers": 2100000,
+      "stories": 161000
+    },
+    {
+      "rank": 47,
+      "tag": "Web Development",
+      "value": 6.8,
+      "followers": 2000000,
+      "stories": 294000
+    },
+    {
+      "rank": 48,
+      "tag": "Future",
+      "value": 15.38,
+      "followers": 2000000,
+      "stories": 130000
+    },
+    {
+      "rank": 49,
+      "tag": "Blockchain",
+      "value": 1.16,
+      "followers": 2000000,
+      "stories": 1700000
+    },
+    {
+      "rank": 50,
+      "tag": "Society",
+      "value": 16.07,
+      "followers": 2000000,
+      "stories": 122000
+    },
+    {
+      "rank": 51,
+      "tag": "Sexuality",
+      "value": 25.26,
+      "followers": 1900000,
+      "stories": 76000
+    },
+    {
+      "rank": 52,
+      "tag": "Work",
+      "value": 12.31,
+      "followers": 1900000,
+      "stories": 156000
+    },
+    {
+      "rank": 53,
+      "tag": "Gaming",
+      "value": 9.47,
+      "followers": 1800000,
+      "stories": 190000
+    },
+    {
+      "rank": 54,
+      "tag": "Philosophy",
+      "value": 7.35,
+      "followers": 1800000,
+      "stories": 245000
+    },
+    {
+      "rank": 55,
+      "tag": "Sports",
+      "value": 5.41,
+      "followers": 1800000,
+      "stories": 333000
+    },
+    {
+      "rank": 56,
+      "tag": "Space",
+      "value": 27.87,
+      "followers": 1700000,
+      "stories": 61000
+    },
+    {
+      "rank": 57,
+      "tag": "Poetry",
+      "value": 2.1,
+      "followers": 1700000,
+      "stories": 810000
+    },
+    {
+      "rank": 58,
+      "tag": "Economics",
+      "value": 13.08,
+      "followers": 1700000,
+      "stories": 130000
+    },
+    {
+      "rank": 59,
+      "tag": "Spirituality",
+      "value": 6.2,
+      "followers": 1700000,
+      "stories": 274000
+    },
+    {
+      "rank": 60,
+      "tag": "Fiction",
+      "value": 5.65,
+      "followers": 1600000,
+      "stories": 283000
+    },
+    {
+      "rank": 61,
+      "tag": "Feminism",
+      "value": 14.29,
+      "followers": 1600000,
+      "stories": 112000
+    },
+    {
+      "rank": 62,
+      "tag": "Climate Change",
+      "value": 10.64,
+      "followers": 1500000,
+      "stories": 141000
+    },
+    {
+      "rank": 63,
+      "tag": "Fitness",
+      "value": 7.45,
+      "followers": 1400000,
+      "stories": 188000
+    },
+    {
+      "rank": 64,
+      "tag": "Language",
+      "value": 21.54,
+      "followers": 1400000,
+      "stories": 65000
+    },
+    {
+      "rank": 65,
+      "tag": "Family",
+      "value": 6.5,
+      "followers": 1300000,
+      "stories": 200000
+    },
+    {
+      "rank": 66,
+      "tag": "Android",
+      "value": 8.63,
+      "followers": 1200000,
+      "stories": 139000
+    },
+    {
+      "rank": 67,
+      "tag": "Innovation",
+      "value": 6.63,
+      "followers": 1200000,
+      "stories": 181000
+    },
+    {
+      "rank": 68,
+      "tag": "Inspiration",
+      "value": 4.8,
+      "followers": 1200000,
+      "stories": 250000
+    },
+    {
+      "rank": 69,
+      "tag": "Media",
+      "value": 11.34,
+      "followers": 1100000,
+      "stories": 97000
+    },
+    {
+      "rank": 70,
+      "tag": "Apple",
+      "value": 10.48,
+      "followers": 1100000,
+      "stories": 105000
+    },
+    {
+      "rank": 71,
+      "tag": "World",
+      "value": 17.19,
+      "followers": 1100000,
+      "stories": 64000
+    },
+    {
+      "rank": 72,
+      "tag": "React",
+      "value": 10.58,
+      "followers": 1100000,
+      "stories": 104000
+    },
+    {
+      "rank": 73,
+      "tag": "Parenting",
+      "value": 6.59,
+      "followers": 1100000,
+      "stories": 167000
+    },
+    {
+      "rank": 74,
+      "tag": "Ideas",
+      "value": 15.49,
+      "followers": 1100000,
+      "stories": 71000
+    },
+    {
+      "rank": 75,
+      "tag": "Freelancing",
+      "value": 12.05,
+      "followers": 1000000,
+      "stories": 83000
+    },
+    {
+      "rank": 76,
+      "tag": "Math",
+      "value": 45.45,
+      "followers": 1000000,
+      "stories": 22000
+    },
+    {
+      "rank": 77,
+      "tag": "True Crime",
+      "value": 30.3,
+      "followers": 1000000,
+      "stories": 33000
+    },
+    {
+      "rank": 78,
+      "tag": "Justice",
+      "value": 22.22,
+      "followers": 1000000,
+      "stories": 45000
+    },
+    {
+      "rank": 79,
+      "tag": "Equality",
+      "value": 20.41,
+      "followers": 1000000,
+      "stories": 49000
+    },
+    {
+      "rank": 80,
+      "tag": "Religion",
+      "value": 8.2,
+      "followers": 1000000,
+      "stories": 122000
+    },
+    {
+      "rank": 81,
+      "tag": "Movies",
+      "value": 4.07,
+      "followers": 1000000,
+      "stories": 246000
+    },
+    {
+      "rank": 82,
+      "tag": "Tech",
+      "value": 3.32,
+      "followers": 1000000,
+      "stories": 301000
+    },
+    {
+      "rank": 83,
+      "tag": "Life Lessons",
+      "value": 1.29,
+      "followers": 1000000,
+      "stories": 778000
+    },
+    {
+      "rank": 84,
+      "tag": "Cybersecurity",
+      "value": 5.28,
+      "followers": 961000,
+      "stories": 182000
+    },
+    {
+      "rank": 85,
+      "tag": "Internet of Things",
+      "value": 28.91,
+      "followers": 954000,
+      "stories": 33000
+    },
+    {
+      "rank": 86,
+      "tag": "Product Management",
+      "value": 9.01,
+      "followers": 937000,
+      "stories": 104000
+    },
+    {
+      "rank": 87,
+      "tag": "This Happened To Me",
+      "value": 9.82,
+      "followers": 923000,
+      "stories": 94000
+    },
+    {
+      "rank": 88,
+      "tag": "Bitcoin",
+      "value": 0.77,
+      "followers": 918000,
+      "stories": 1200000
+    },
+    {
+      "rank": 89,
+      "tag": "Venture Capital",
+      "value": 10.45,
+      "followers": 909000,
+      "stories": 87000
+    },
+    {
+      "rank": 90,
+      "tag": "Reading",
+      "value": 5.54,
+      "followers": 770000,
+      "stories": 139000
+    },
+    {
+      "rank": 91,
+      "tag": "Privacy",
+      "value": 9.65,
+      "followers": 743000,
+      "stories": 77000
+    },
+    {
+      "rank": 92,
+      "tag": "Government",
+      "value": 9.05,
+      "followers": 724000,
+      "stories": 80000
+    },
+    {
+      "rank": 93,
+      "tag": "UI",
+      "value": 10.62,
+      "followers": 722000,
+      "stories": 68000
+    },
+    {
+      "rank": 94,
+      "tag": "Race",
+      "value": 19.22,
+      "followers": 711000,
+      "stories": 37000
+    },
+    {
+      "rank": 95,
+      "tag": "Data Engineering",
+      "value": 20.71,
+      "followers": 704000,
+      "stories": 34000
+    },
+    {
+      "rank": 96,
+      "tag": "Cooking",
+      "value": 13.19,
+      "followers": 699000,
+      "stories": 53000
+    },
+    {
+      "rank": 97,
+      "tag": "Finance",
+      "value": 2.19,
+      "followers": 698000,
+      "stories": 318000
+    },
+    {
+      "rank": 98,
+      "tag": "Data Visualization",
+      "value": 10.9,
+      "followers": 687000,
+      "stories": 63000
+    },
+    {
+      "rank": 99,
+      "tag": "Investing",
+      "value": 2.69,
+      "followers": 657000,
+      "stories": 244000
+    },
+    {
+      "rank": 100,
+      "tag": "UX Design",
+      "value": 6.0,
+      "followers": 654000,
+      "stories": 109000
+    }
+  ]
+}

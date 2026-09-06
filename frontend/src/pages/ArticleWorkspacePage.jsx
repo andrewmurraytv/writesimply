@@ -14,6 +14,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const formatCount = (n) => {
+  if (typeof n !== "number") return "";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+};
+
 export default function ArticleWorkspacePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -486,23 +493,50 @@ export default function ArticleWorkspacePage() {
 
                   {suggestions.tags && (
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="text-[0.65rem] text-[#78716C] font-[Manrope] uppercase tracking-wider">Tags (Medium: 3 wide + 2 specific)</div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="text-[0.65rem] text-[#78716C] font-[Manrope] uppercase tracking-wider">Tags — Medium allows 5</div>
                         <button onClick={applyAllTags} data-testid="apply-all-tags" className="text-[0.65rem] text-[#C96442] hover:text-[#A8502F] font-[Manrope] font-medium">+ Add all</button>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[...(suggestions.tags.general || []), ...(suggestions.tags.specific || [])].map((t, i) => (
-                          <button
-                            key={i}
-                            onClick={() => applyTag(t)}
-                            disabled={tags.includes(t)}
-                            data-testid={`suggested-tag-${t}`}
-                            className="text-xs px-2 py-1 rounded-full bg-[#F0EFEB] hover:bg-[#E6E4DD] font-[Manrope] text-[#1F1E1D] disabled:opacity-40 transition-colors"
-                          >
-                            + {t}
-                          </button>
-                        ))}
-                      </div>
+
+                      {[
+                        { key: "general", label: "Broad reach — bigger audience, more competition" },
+                        { key: "specific", label: "Niche — fewer views, easier to rank" },
+                      ].map(({ key, label }) => (
+                        (suggestions.tags[key] || []).length > 0 && (
+                          <div key={key} className="mb-2">
+                            <div className="text-[0.6rem] text-[#A8A29E] font-[Manrope] mb-1">{label}</div>
+                            <div className="space-y-1">
+                              {suggestions.tags[key].map((t, i) => {
+                                const stats = suggestions.tag_stats?.[t];
+                                return (
+                                  <button
+                                    key={i}
+                                    onClick={() => applyTag(t)}
+                                    disabled={tags.includes(t)}
+                                    data-testid={`suggested-tag-${t}`}
+                                    className="w-full flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md bg-[#F0EFEB] hover:bg-[#E6E4DD] font-[Manrope] text-[#1F1E1D] disabled:opacity-40 transition-colors text-left"
+                                  >
+                                    <span className="truncate">+ {t}</span>
+                                    {stats ? (
+                                      <span className="shrink-0 text-[0.6rem] text-[#78716C] tabular-nums">
+                                        {formatCount(stats.followers)} followers · {stats.value}/story
+                                      </span>
+                                    ) : (
+                                      <span className="shrink-0 text-[0.6rem] text-[#A8A29E]">niche</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )
+                      ))}
+
+                      {suggestions.tag_rationale && (
+                        <p className="text-[0.6rem] text-[#78716C] font-[Manrope] leading-relaxed mt-1.5">
+                          {suggestions.tag_rationale}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
