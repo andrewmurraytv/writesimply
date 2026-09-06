@@ -1,15 +1,50 @@
 import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Bold, Italic, Heading1, Heading2, Quote, List, Link2, X } from "lucide-react";
 
+const escapeHtml = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Focus mode dims blocks with inline opacity. That is presentation, not content,
+// so it must never reach the saved HTML - otherwise a draft written in focus mode
+// persists (and later pastes) with paragraphs stuck at opacity 0.15.
+function stripFocusStyles(editorEl) {
+  const clone = editorEl.cloneNode(true);
+  clone.querySelectorAll("[style]").forEach((el) => {
+    el.style.removeProperty("opacity");
+    el.style.removeProperty("transition");
+    if (!el.getAttribute("style")) el.removeAttribute("style");
+  });
+  return clone.innerHTML;
+}
+
+// For export: strip every presentational attribute so Medium and WordPress get
+// plain semantic HTML and apply their own styling.
+function cleanExportHtml(editorEl, { title, subheadline } = {}) {
+  const clone = editorEl.cloneNode(true);
+  clone.querySelectorAll("*").forEach((el) => {
+    el.removeAttribute("style");
+    el.removeAttribute("class");
+    Array.from(el.attributes).forEach((a) => {
+      if (a.name.startsWith("data-")) el.removeAttribute(a.name);
+    });
+  });
+  let head = "";
+  // Medium turns a leading h1 into the story title and the h2 after it into the subtitle.
+  if (title) head += `<h1>${escapeHtml(title)}</h1>`;
+  if (subheadline) head += `<h2>${escapeHtml(subheadline)}</h2>`;
+  return head + clone.innerHTML;
+}
+
 function normalizeContent(content) {
   if (!content) return "";
   if (content.includes("<") && content.includes(">")) return content;
   return content.split("\n").filter(Boolean).map(line => `<p>${line}</p>`).join("") || "<p><br></p>";
 }
 
-function htmlToMarkdown(editorEl, articleTitle) {
+function htmlToMarkdown(editorEl, articleTitle, subheadline) {
   const lines = [];
   if (articleTitle) lines.push(`# ${articleTitle}`, "");
+  if (subheadline) lines.push(`*${subheadline}*`, "");
   const processNode = (node) => {
     if (node.nodeType === 3) return node.textContent;
     if (node.nodeType !== 1) return "";
@@ -75,14 +110,14 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
       );
       handleInput();
     },
-    copyForMedium: async () => {
+    copyForMedium: async (meta = {}) => {
       if (!editorRef.current) return false;
-      const html = editorRef.current.innerHTML;
+      const html = cleanExportHtml(editorRef.current, meta);
       try {
         await navigator.clipboard.write([
           new ClipboardItem({
             "text/html": new Blob([html], { type: "text/html" }),
-            "text/plain": new Blob([editorRef.current.textContent], { type: "text/plain" }),
+            "text/plain": new Blob([editorRef.current.innerText], { type: "text/plain" }),
           }),
         ]);
         return true;
@@ -90,9 +125,20 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
         return false;
       }
     },
-    copyAsMarkdown: async (articleTitle) => {
+    // WordPress's code editor and Custom HTML block take raw markup, so this puts
+    // the HTML on the clipboard as text rather than as rich text.
+    copyAsHtml: async (meta = {}) => {
       if (!editorRef.current) return false;
-      const md = htmlToMarkdown(editorRef.current, articleTitle);
+      try {
+        await navigator.clipboard.writeText(cleanExportHtml(editorRef.current, meta));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    copyAsMarkdown: async (articleTitle, subheadline) => {
+      if (!editorRef.current) return false;
+      const md = htmlToMarkdown(editorRef.current, articleTitle, subheadline);
       try {
         await navigator.clipboard.writeText(md);
         return true;
@@ -100,9 +146,9 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
         return false;
       }
     },
-    getMarkdown: (articleTitle) => {
+    getMarkdown: (articleTitle, subheadline) => {
       if (!editorRef.current) return "";
-      return htmlToMarkdown(editorRef.current, articleTitle);
+      return htmlToMarkdown(editorRef.current, articleTitle, subheadline);
     },
   }));
 
@@ -143,7 +189,7 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
 
   const handleInput = useCallback(() => {
     if (editorRef.current && onChange) {
-      onChange(editorRef.current.innerHTML);
+      onChange(stripFocusStyles(editorRef.current));
       updateWordCount();
       extractHeadings();
     }

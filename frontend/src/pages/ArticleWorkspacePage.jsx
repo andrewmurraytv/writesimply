@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2, BarChart3 } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2, BarChart3, Code } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -204,8 +204,17 @@ export default function ArticleWorkspacePage() {
   // Copy for Medium
   const handleCopyForMedium = async () => {
     if (editorRef.current?.copyForMedium) {
-      const ok = await editorRef.current.copyForMedium();
-      if (ok) toast.success("Copied as rich text! Paste into Medium.");
+      const ok = await editorRef.current.copyForMedium({ title, subheadline });
+      if (ok) toast.success("Copied with title + subtitle. Paste into a new Medium story.");
+      else toast.error("Copy failed");
+    }
+  };
+
+  // Copy clean HTML for WordPress's code editor / Custom HTML block
+  const handleCopyHtml = async () => {
+    if (editorRef.current?.copyAsHtml) {
+      const ok = await editorRef.current.copyAsHtml({ title, subheadline });
+      if (ok) toast.success("HTML copied. Paste into WordPress's code editor.");
       else toast.error("Copy failed");
     }
   };
@@ -213,7 +222,7 @@ export default function ArticleWorkspacePage() {
   // Copy as Markdown
   const handleCopyMarkdown = async () => {
     if (editorRef.current?.copyAsMarkdown) {
-      const ok = await editorRef.current.copyAsMarkdown(title);
+      const ok = await editorRef.current.copyAsMarkdown(title, subheadline);
       if (ok) toast.success("Copied as Markdown!");
       else toast.error("Copy failed");
     }
@@ -222,7 +231,7 @@ export default function ArticleWorkspacePage() {
   // Download as .md file
   const handleDownloadMarkdown = () => {
     if (editorRef.current?.getMarkdown) {
-      const md = editorRef.current.getMarkdown(title);
+      const md = editorRef.current.getMarkdown(title, subheadline);
       const blob = new Blob([md], { type: "text/markdown" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -321,6 +330,10 @@ export default function ArticleWorkspacePage() {
               <DropdownMenuItem data-testid="copy-for-medium" onClick={handleCopyForMedium} className="font-[Manrope] text-xs cursor-pointer">
                 <ClipboardCopy className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                 Copy for Medium (Rich Text)
+              </DropdownMenuItem>
+              <DropdownMenuItem data-testid="copy-html" onClick={handleCopyHtml} className="font-[Manrope] text-xs cursor-pointer">
+                <Code className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
+                Copy for WordPress (HTML)
               </DropdownMenuItem>
               <DropdownMenuItem data-testid="copy-markdown" onClick={handleCopyMarkdown} className="font-[Manrope] text-xs cursor-pointer">
                 <FileText className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
