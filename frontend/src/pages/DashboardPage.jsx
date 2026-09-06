@@ -184,22 +184,37 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Status Filter */}
+        {/* Status Filter (also a drop target for dragged cards) */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {STATUSES.map((s) => (
             <button
               key={s}
               data-testid={`filter-status-${s}`}
               onClick={() => setActiveStatus(s)}
+              onDragOver={(e) => { if (s !== "all") { e.preventDefault(); setDragOverStatus(s); } }}
+              onDragLeave={() => setDragOverStatus((cur) => (cur === s ? null : cur))}
+              onDrop={(e) => {
+                if (s === "all") return;
+                e.preventDefault();
+                setDragOverStatus(null);
+                const articleId = e.dataTransfer.getData("articleId");
+                const article = articles.find((a) => a.id === articleId);
+                if (article) moveArticleStatus(article, s);
+              }}
               className={`px-3 py-1.5 rounded-md text-xs font-medium font-[Manrope] transition-colors ${
                 activeStatus === s
                   ? "bg-[#1F1E1D] text-[#FAF9F5]"
+                  : dragOverStatus === s
+                  ? "bg-[#C96442] text-white"
                   : "bg-[#F0EFEB] text-[#4A4541] hover:bg-[#E6E4DD]"
               }`}
             >
               {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
+          {view === "grid" && (
+            <span className="text-[0.65rem] text-[#A8A29E] font-[Manrope] ml-1">Drag a card here to change its status</span>
+          )}
         </div>
 
         {/* Tag Filter */}
@@ -247,7 +262,7 @@ export default function DashboardPage() {
             )}
           </div>
         ) : view === "board" ? (
-          <div className="flex gap-4 overflow-x-auto pb-4" data-testid="kanban-board">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kanban-board">
             {kanbanColumns.map((col) => (
               <div
                 key={col.status}
@@ -261,7 +276,7 @@ export default function DashboardPage() {
                   const article = articles.find((a) => a.id === articleId);
                   if (article) moveArticleStatus(article, col.status);
                 }}
-                className={`shrink-0 w-72 rounded-lg border transition-colors ${
+                className={`min-w-0 rounded-lg border transition-colors ${
                   dragOverStatus === col.status ? "border-[#C96442] bg-[#FCEEE8]" : "border-[#E6E4DD] bg-[#F0EFEB]"
                 }`}
               >
@@ -307,9 +322,11 @@ export default function DashboardPage() {
             {filtered.map((article) => (
               <button
                 key={article.id}
+                draggable
                 data-testid={`article-card-${article.id}`}
+                onDragStart={(e) => { e.dataTransfer.setData("articleId", article.id); }}
                 onClick={() => navigate(`/articles/${article.id}`)}
-                className="text-left p-6 bg-[#FCFBF8] border border-[#E6E4DD] rounded-lg hover:bg-[#F0EFEB] transition-colors"
+                className="text-left p-6 bg-[#FCFBF8] border border-[#E6E4DD] rounded-lg hover:bg-[#F0EFEB] transition-colors cursor-grab active:cursor-grabbing"
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <h3 className="font-bold text-[#1F1E1D] font-[Manrope] leading-snug line-clamp-2">
