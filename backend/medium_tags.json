@@ -702,9 +702,29 @@
       "value": 6.0,
       "followers": 654000,
       "stories": 109000
+    },
+    {
+      "tag": "AI",
+      "followers": 1600000,
+      "stories": 519000,
+      "value": 3.08,
+      "source": "medium-live"
+    },
+    {
+      "tag": "AI Agent",
+      "followers": 604000,
+      "stories": 54000,
+      "value": 11.19,
+      "source": "medium-live"
     }
   ],
   "niche_tags": [
+    {
+      "tag": "Earn Money Online",
+      "followers": 13700,
+      "stories": 18700,
+      "value": 0.733
+    },
     {
       "tag": "Make Money Online",
       "followers": 26000,
@@ -724,10 +744,22 @@
       "value": 0.41
     },
     {
+      "tag": "Claude Code",
+      "followers": 4000,
+      "stories": 12000,
+      "value": 0.333
+    },
+    {
       "tag": "Side Hustle",
       "followers": 10300,
       "stories": 37000,
       "value": 0.28
+    },
+    {
+      "tag": "Social Media Marketing",
+      "followers": 11600,
+      "stories": 50000,
+      "value": 0.232
     },
     {
       "tag": "Solopreneur",
@@ -742,16 +774,40 @@
       "value": 0.23
     },
     {
+      "tag": "Content Marketing",
+      "followers": 14600,
+      "stories": 65000,
+      "value": 0.225
+    },
+    {
       "tag": "Personal Finance",
       "followers": 10100,
       "stories": 46000,
       "value": 0.22
     },
     {
+      "tag": "Indiehackers",
+      "followers": 241,
+      "stories": 1100,
+      "value": 0.219
+    },
+    {
       "tag": "Digital Marketing",
       "followers": 23000,
       "stories": 110000,
       "value": 0.209
+    },
+    {
+      "tag": "SaaS",
+      "followers": 6900,
+      "stories": 39000,
+      "value": 0.177
+    },
+    {
+      "tag": "Solopreneurship",
+      "followers": 261,
+      "stories": 1600,
+      "value": 0.163
     },
     {
       "tag": "Reddit",
@@ -784,6 +840,18 @@
       "value": 0.12
     },
     {
+      "tag": "Investment",
+      "followers": 5500,
+      "stories": 46000,
+      "value": 0.12
+    },
+    {
+      "tag": "Content Creation",
+      "followers": 3900,
+      "stories": 33000,
+      "value": 0.118
+    },
+    {
       "tag": "YouTube",
       "followers": 4800,
       "stories": 44000,
@@ -800,6 +868,12 @@
       "followers": 3300,
       "stories": 38000,
       "value": 0.087
+    },
+    {
+      "tag": "SEO",
+      "followers": 13600,
+      "stories": 294000,
+      "value": 0.046
     }
   ],
   "niche_note": "niche_tags were read directly from medium.com/tag/<slug> on the date below. They are ordinary tags, not official Medium Topics, so their follower bases are far smaller than the topic-level numbers in \"tags\" - compare ratios within a group, not across the two.",

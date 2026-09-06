@@ -452,6 +452,19 @@ async def delete_article(article_id: str, request: Request):
     return {"message": "Article deleted"}
 
 # ── Prompts ──
+@api_router.get("/medium-tags")
+async def list_medium_tags(request: Request):
+    """The tag reference data, so the UI can let writers browse and compare tags."""
+    await get_current_user(request)
+    return {
+        "topics": MEDIUM_TAG_DATA.get("tags", []),
+        "niche": MEDIUM_TAG_DATA.get("niche_tags", []),
+        "note": MEDIUM_TAG_DATA.get("niche_note"),
+        "source": MEDIUM_TAG_DATA.get("source"),
+        "snapshot_date": MEDIUM_TAG_DATA.get("snapshot_date"),
+        "niche_snapshot_date": MEDIUM_TAG_DATA.get("niche_snapshot_date"),
+    }
+
 @api_router.get("/prompts")
 async def list_prompts(request: Request):
     user = await get_current_user(request)

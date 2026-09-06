@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2 } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2, BarChart3 } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -50,6 +50,9 @@ export default function ArticleWorkspacePage() {
   const [suggesting, setSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showTagBrowser, setShowTagBrowser] = useState(false);
+  const [tagCatalog, setTagCatalog] = useState(null);
+  const [tagSearch, setTagSearch] = useState("");
 
   const hasChangesRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
@@ -149,6 +152,31 @@ export default function ArticleWorkspacePage() {
       setSuggesting(false);
     }
   };
+  const openTagBrowser = async () => {
+    setShowTagBrowser((open) => !open);
+    if (tagCatalog) return;
+    try {
+      const res = await apiFetch(`${API}/medium-tags`);
+      if (res.ok) setTagCatalog(await res.json());
+    } catch {
+      toast.error("Could not load tag data");
+    }
+  };
+
+  // One list, but ratios only mean something within a group, so each row keeps
+  // its group label rather than being merged into a single ranking.
+  const browsableTags = useMemo(() => {
+    if (!tagCatalog) return [];
+    const rows = [
+      ...(tagCatalog.topics || []).map((t) => ({ ...t, group: "topic" })),
+      ...(tagCatalog.niche || []).map((t) => ({ ...t, group: "niche" })),
+    ];
+    const q = tagSearch.trim().toLowerCase();
+    return rows
+      .filter((t) => !q || t.tag.toLowerCase().includes(q))
+      .sort((a, b) => b.value - a.value);
+  }, [tagCatalog, tagSearch]);
+
   const applyHeadline = (h) => setTitle(h);
   const applySubheadline = (s) => setSubheadline(s);
   const applyTag = (t) => { if (!tags.includes(t)) setTags([...tags, t]); };
@@ -434,15 +462,82 @@ export default function ArticleWorkspacePage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-[#78716C] font-[Manrope] uppercase tracking-wider">Tags</label>
-                <button
-                  data-testid="suggest-metadata-button"
-                  onClick={requestSuggestions}
-                  disabled={suggesting}
-                  className="text-xs text-[#C96442] hover:text-[#A8502F] font-[Manrope] font-medium flex items-center gap-1 disabled:opacity-50"
-                >
-                  <Wand2 className="w-3 h-3" /> {suggesting ? "Thinking..." : "AI Suggest"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    data-testid="browse-tags-button"
+                    onClick={openTagBrowser}
+                    className="text-xs text-[#78716C] hover:text-[#1F1E1D] font-[Manrope] font-medium flex items-center gap-1"
+                  >
+                    <BarChart3 className="w-3 h-3" /> Browse
+                  </button>
+                  <button
+                    data-testid="suggest-metadata-button"
+                    onClick={requestSuggestions}
+                    disabled={suggesting}
+                    className="text-xs text-[#C96442] hover:text-[#A8502F] font-[Manrope] font-medium flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <Wand2 className="w-3 h-3" /> {suggesting ? "Thinking..." : "AI Suggest"}
+                  </button>
+                </div>
               </div>
+
+              {showTagBrowser && (
+                <div className="mb-3 p-3 bg-white rounded-md border border-[#E6E4DD]" data-testid="tag-browser">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[0.65rem] font-medium text-[#1F1E1D] font-[Manrope] uppercase tracking-wider">Compare tags</span>
+                    <button onClick={() => setShowTagBrowser(false)} className="text-[#A8A29E] hover:text-[#991B1B]" data-testid="close-tag-browser">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    data-testid="tag-browser-search"
+                    type="text"
+                    value={tagSearch}
+                    onChange={(e) => setTagSearch(e.target.value)}
+                    placeholder="Search tags..."
+                    className="w-full text-xs px-2 py-1.5 mb-2 border border-[#E6E4DD] rounded-sm font-[Manrope] focus:outline-none focus:ring-1 focus:ring-[#1F1E1D]"
+                  />
+                  {!tagCatalog ? (
+                    <p className="text-[0.65rem] text-[#A8A29E] font-[Manrope]">Loading…</p>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between text-[0.6rem] text-[#A8A29E] font-[Manrope] px-1 pb-1 border-b border-[#F0EFEB]">
+                        <span>tag</span>
+                        <span>followers · per story</span>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto divide-y divide-[#F5F4F1]">
+                        {browsableTags.map((t) => (
+                          <button
+                            key={`${t.group}-${t.tag}`}
+                            onClick={() => applyTag(t.tag)}
+                            disabled={tags.includes(t.tag)}
+                            data-testid={`browse-tag-${t.tag}`}
+                            className="w-full flex items-center justify-between gap-2 text-xs px-1 py-1.5 hover:bg-[#F0EFEB] font-[Manrope] text-[#1F1E1D] disabled:opacity-40 transition-colors text-left"
+                          >
+                            <span className="truncate">
+                              {t.tag}
+                              <span className={`ml-1.5 text-[0.55rem] uppercase ${t.group === "topic" ? "text-[#C96442]" : "text-[#A8A29E]"}`}>
+                                {t.group}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-[0.6rem] text-[#78716C] tabular-nums">
+                              {formatCount(t.followers)} · {t.value}
+                            </span>
+                          </button>
+                        ))}
+                        {browsableTags.length === 0 && (
+                          <p className="text-[0.65rem] text-[#A8A29E] font-[Manrope] py-2">No tags match.</p>
+                        )}
+                      </div>
+                      <p className="text-[0.55rem] text-[#A8A29E] font-[Manrope] leading-relaxed mt-2">
+                        Per story = followers ÷ stories; higher means a bigger audience for the
+                        amount already published. Topics have far larger follower bases than
+                        niche tags, so compare within a group, not across.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {tags.map((tag) => (
                   <span key={tag} className="tag-pill" data-testid={`tag-${tag}`}>
