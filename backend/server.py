@@ -379,26 +379,26 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape
 {{
   "headlines": ["option 1", "option 2", "option 3"],
   "subheadlines": ["option 1", "option 2"],
-  "tags": {{
-    "general": ["wide tag 1", "wide tag 2", "wide tag 3"],
-    "specific": ["specific tag 1", "specific tag 2"]
-  }},
-  "tag_rationale": "one or two sentences explaining the mix you chose"
+  "topics": ["topic 1", "topic 2", "topic 3", "topic 4", "topic 5"],
+  "niches": ["niche 1", "niche 2", "niche 3", "niche 4", "niche 5"],
+  "tag_rationale": "one or two sentences on how to combine them"
 }}
 
 Rules:
 - headlines: 3 compelling Medium-style headline options based on the content, distinct from each other.
 - subheadlines: 2 short subtitle options (Medium's supporting line under the title, under 140 characters each).
-- Medium allows 5 tags per story, so return exactly 3 general + 2 specific.
-- tags.general: 3 broad, high-volume tags drawn from the reference list above wherever
-  a genuinely relevant one exists. Prefer tags with a high followers-per-story ratio
-  over the single biggest tag — a huge crowded tag buries a new story.
-- tags.specific: 2 narrower tags that match this article's actual subject. Prefer ones
-  from the niche list above when they fit; otherwise invent an apt one. These get fewer
-  views but are far easier to rank in.
-- Relevance beats popularity: never pick a big tag that doesn't genuinely fit the piece.
-  Prefer a precise tag over a vague one ("Content Marketing", not "Marketing").
-- All tags follow Medium conventions: 1-3 words, Title Case, no hashtags, no repeats."""
+- topics: exactly 5, every one taken verbatim from the TOPICS reference list above.
+  Order them best-fit first. Prefer a high followers-per-story ratio over raw size —
+  a huge crowded topic buries a new story — but never pick one that doesn't genuinely
+  fit the piece.
+- niches: exactly 5 narrow tags matching the article's actual subject. Prefer ones from
+  the NICHE reference list when they fit; invent an apt one otherwise. Order best-fit first.
+- The writer picks their own 5 from these 10, so give real alternatives rather than five
+  near-synonyms — vary the angle within each list.
+- Relevance beats popularity. Prefer a precise tag over a vague one ("Content Marketing",
+  not "Marketing").
+- All tags follow Medium conventions: 1-3 words, Title Case, no hashtags, no repeats
+  across the two lists."""
 
     try:
         resp = http_requests.post(
@@ -410,7 +410,7 @@ Rules:
             },
             json={
                 "model": ANTHROPIC_MODEL,
-                "max_tokens": 1024,
+                "max_tokens": 2048,
                 "messages": [{"role": "user", "content": prompt}],
             },
             timeout=60,
@@ -426,15 +426,19 @@ Rules:
     try:
         suggestions = json.loads(raw_text)
     except json.JSONDecodeError:
-        logger.error(f"Could not parse Claude response as JSON: {raw_text[:500]}")
+        # stop_reason distinguishes "ran out of tokens mid-JSON" from "wrote
+        # something that isn't JSON" - without it the two look identical here.
+        stop = data.get("stop_reason")
+        logger.error(f"Could not parse Claude response as JSON (stop_reason={stop}): {raw_text[:500]}")
+        if stop == "max_tokens":
+            raise HTTPException(status_code=502, detail="AI response was cut off. Please try again.")
         raise HTTPException(status_code=502, detail="AI response could not be parsed. Please try again.")
 
     # Attach real audience numbers so the UI can show the volume mix rather than
     # asking the user to trust the model's sense of how big a tag is.
-    tags = suggestions.get("tags") or {}
     suggestions["tag_stats"] = {
         name: stats
-        for name in (tags.get("general") or []) + (tags.get("specific") or [])
+        for name in (suggestions.get("topics") or []) + (suggestions.get("niches") or [])
         if (stats := tag_stats(name))
     }
     suggestions["tag_data_source"] = {

@@ -179,12 +179,9 @@ export default function ArticleWorkspacePage() {
 
   const applyHeadline = (h) => setTitle(h);
   const applySubheadline = (s) => setSubheadline(s);
+  const toggleTag = (t) =>
+    setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
   const applyTag = (t) => { if (!tags.includes(t)) setTags([...tags, t]); };
-  const applyAllTags = () => {
-    if (!suggestions?.tags) return;
-    const all = [...(suggestions.tags.general || []), ...(suggestions.tags.specific || [])];
-    setTags([...new Set([...tags, ...all])]);
-  };
 
   // Reference links
   const addLink = () => {
@@ -590,39 +587,43 @@ export default function ArticleWorkspacePage() {
                     </div>
                   )}
 
-                  {suggestions.tags && (
+                  {(suggestions.topics || suggestions.niches) && (
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <div className="text-[0.65rem] text-[#78716C] font-[Manrope] uppercase tracking-wider">Tags — Medium allows 5</div>
-                        <button onClick={applyAllTags} data-testid="apply-all-tags" className="text-[0.65rem] text-[#C96442] hover:text-[#A8502F] font-[Manrope] font-medium">+ Add all</button>
+                        <div className="text-[0.65rem] text-[#78716C] font-[Manrope] uppercase tracking-wider">Pick your tags</div>
+                        <span className={`text-[0.6rem] font-[Manrope] tabular-nums ${tags.length > 5 ? "text-[#991B1B] font-medium" : "text-[#A8A29E]"}`} data-testid="tag-count">
+                          {tags.length}/5 chosen
+                        </span>
                       </div>
 
                       {[
-                        { key: "general", label: "Broad reach — bigger audience, more competition" },
-                        { key: "specific", label: "Niche — fewer views, easier to rank" },
+                        { key: "topics", label: "Topics — where the audience is" },
+                        { key: "niches", label: "Niches — precise, barely contested" },
                       ].map(({ key, label }) => (
-                        (suggestions.tags[key] || []).length > 0 && (
+                        (suggestions[key] || []).length > 0 && (
                           <div key={key} className="mb-2">
                             <div className="text-[0.6rem] text-[#A8A29E] font-[Manrope] mb-1">{label}</div>
                             <div className="space-y-1">
-                              {suggestions.tags[key].map((t, i) => {
+                              {suggestions[key].map((t, i) => {
                                 const stats = suggestions.tag_stats?.[t];
+                                const chosen = tags.includes(t);
                                 return (
                                   <button
                                     key={i}
-                                    onClick={() => applyTag(t)}
-                                    disabled={tags.includes(t)}
+                                    onClick={() => toggleTag(t)}
                                     data-testid={`suggested-tag-${t}`}
-                                    className="w-full flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md bg-[#F0EFEB] hover:bg-[#E6E4DD] font-[Manrope] text-[#1F1E1D] disabled:opacity-40 transition-colors text-left"
+                                    className={`w-full flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md font-[Manrope] transition-colors text-left border ${
+                                      chosen
+                                        ? "bg-[#1F1E1D] text-[#FAF9F5] border-[#1F1E1D]"
+                                        : "bg-[#F0EFEB] text-[#1F1E1D] border-transparent hover:bg-[#E6E4DD]"
+                                    }`}
                                   >
-                                    <span className="truncate">+ {t}</span>
-                                    {stats ? (
-                                      <span className="shrink-0 text-[0.6rem] text-[#78716C] tabular-nums">
-                                        {formatCount(stats.followers)} followers · {stats.value}/story
-                                      </span>
-                                    ) : (
-                                      <span className="shrink-0 text-[0.6rem] text-[#A8A29E]">niche</span>
-                                    )}
+                                    <span className="truncate">{chosen ? "✓" : "+"} {t}</span>
+                                    <span className={`shrink-0 text-[0.6rem] tabular-nums ${chosen ? "text-[#E6E4DD]" : "text-[#78716C]"}`}>
+                                      {stats
+                                        ? `${formatCount(stats.followers)} · ${stats.value}/story`
+                                        : "no data"}
+                                    </span>
                                   </button>
                                 );
                               })}
@@ -630,6 +631,12 @@ export default function ArticleWorkspacePage() {
                           </div>
                         )
                       ))}
+
+                      {tags.length > 5 && (
+                        <p className="text-[0.6rem] text-[#991B1B] font-[Manrope] mb-1">
+                          Medium only accepts 5 tags — remove {tags.length - 5} before publishing.
+                        </p>
+                      )}
 
                       {suggestions.tag_rationale && (
                         <p className="text-[0.6rem] text-[#78716C] font-[Manrope] leading-relaxed mt-1.5">
