@@ -63,19 +63,29 @@ def _load_medium_tags():
         return {"tags": []}
 
 MEDIUM_TAG_DATA = _load_medium_tags()
-MEDIUM_TAGS_BY_NAME = {t["tag"].lower(): t for t in MEDIUM_TAG_DATA.get("tags", [])}
+# Two groups, deliberately kept apart: "tags" are official Medium Topics with
+# topic-scale follower counts, "niche_tags" are ordinary tags read off
+# medium.com/tag/<slug>. Ratios are only comparable within a group.
+MEDIUM_TAGS_BY_NAME = {
+    **{t["tag"].lower(): (t, "niche") for t in MEDIUM_TAG_DATA.get("niche_tags", [])},
+    **{t["tag"].lower(): (t, "topic") for t in MEDIUM_TAG_DATA.get("tags", [])},
+}
 
 def tag_stats(name: str):
-    """Follower/competition stats for a tag, when it's in the top-100 snapshot."""
-    t = MEDIUM_TAGS_BY_NAME.get((name or "").strip().lower())
-    if not t:
+    """Follower/competition stats for a tag, when we have numbers for it."""
+    found = MEDIUM_TAGS_BY_NAME.get((name or "").strip().lower())
+    if not found:
         return None
-    return {
+    t, kind = found
+    stats = {
         "followers": t["followers"],
         "stories": t["stories"],
         "value": t["value"],
-        "rank": t["rank"],
+        "kind": kind,
     }
+    if "rank" in t:
+        stats["rank"] = t["rank"]
+    return stats
 
 # ── Slugify ──
 def slugify(text: str, max_len: int = 60) -> str:
@@ -337,11 +347,15 @@ async def suggest_metadata(article_id: str, request: Request):
     if not body_text:
         raise HTTPException(status_code=400, detail="Add some notes or article content before requesting suggestions.")
 
-    tag_reference = "\n".join(
-        f"- {t['tag']}: {t['followers']:,} followers, {t['stories']:,} stories, "
-        f"{t['value']} followers per story"
-        for t in MEDIUM_TAG_DATA.get("tags", [])
-    )
+    def _tag_lines(items):
+        return "\n".join(
+            f"- {t['tag']}: {t['followers']:,} followers, {t['stories']:,} stories, "
+            f"{t['value']} followers per story"
+            for t in items
+        )
+
+    tag_reference = _tag_lines(MEDIUM_TAG_DATA.get("tags", []))
+    niche_reference = _tag_lines(MEDIUM_TAG_DATA.get("niche_tags", []))
 
     prompt = f"""You are helping a writer prepare a Medium article for publishing.
 
@@ -350,11 +364,16 @@ Current title: {article.get('title') or '(untitled)'}
 Article content / notes:
 {body_text[:8000]}
 
-Reference data — the top 100 Medium tags right now. "followers per story" is the
+Reference data — Medium's top 100 TOPICS. "followers per story" is the
 demand-to-competition ratio: a high number means a large audience relative to how
-much is already published under that tag (easier to get seen), a low number means
-a crowded tag.
+much is already published there (easier to get seen), a low number means a crowded
+topic.
 {tag_reference}
+
+Reference data — smaller NICHE tags (ordinary tags, not official topics, so their
+follower bases are much smaller; compare these ratios to each other, not to the
+topics above):
+{niche_reference}
 
 Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape:
 {{
@@ -374,8 +393,9 @@ Rules:
 - tags.general: 3 broad, high-volume tags drawn from the reference list above wherever
   a genuinely relevant one exists. Prefer tags with a high followers-per-story ratio
   over the single biggest tag — a huge crowded tag buries a new story.
-- tags.specific: 2 narrower tags that match this article's actual subject. These may be
-  outside the reference list. They will get fewer views but are far easier to rank in.
+- tags.specific: 2 narrower tags that match this article's actual subject. Prefer ones
+  from the niche list above when they fit; otherwise invent an apt one. These get fewer
+  views but are far easier to rank in.
 - Relevance beats popularity: never pick a big tag that doesn't genuinely fit the piece.
   Prefer a precise tag over a vague one ("Content Marketing", not "Marketing").
 - All tags follow Medium conventions: 1-3 words, Title Case, no hashtags, no repeats."""

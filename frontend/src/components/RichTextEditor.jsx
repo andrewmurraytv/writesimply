@@ -54,12 +54,11 @@ const ToolbarButton = ({ icon: Icon, onAction, active, title }) => (
   </button>
 );
 
-const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, articleId, focusMode = false, outlineMode = false, onOutlineJump }, ref) {
+const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, articleId, focusMode = false, outlineMode = false, onOutlineJump, onWordCountChange }, ref) {
   const editorRef = useRef(null);
   const toolbarRef = useRef(null);
   const [showToolbar, setShowToolbar] = useState(false);
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
-  const [wordCount, setWordCount] = useState(0);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [headings, setHeadings] = useState([]);
@@ -122,14 +121,13 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
   }, [content, articleId]);
 
   const updateWordCount = useCallback(() => {
-    if (editorRef.current) {
-      // innerText, not textContent: textContent joins block elements with no
-      // separator, so the last word of one paragraph merges with the first word
-      // of the next ("...world" + "Foo..." = one word) and the count runs low.
-      const text = (editorRef.current.innerText || "").trim();
-      setWordCount(text ? text.split(/\s+/).filter(Boolean).length : 0);
-    }
-  }, []);
+    if (!editorRef.current) return;
+    // innerText, not textContent: textContent joins block elements with no
+    // separator, so the last word of one paragraph merges with the first word
+    // of the next ("...world" + "Foo..." = one word) and the count runs low.
+    const text = (editorRef.current.innerText || "").trim();
+    onWordCountChange?.(text ? text.split(/\s+/).filter(Boolean).length : 0);
+  }, [onWordCountChange]);
 
   const extractHeadings = useCallback(() => {
     if (!editorRef.current) return;
@@ -404,11 +402,6 @@ const RichTextEditor = forwardRef(function RichTextEditor({ content, onChange, a
         data-placeholder="Start writing your article..."
         className={`editor-contenteditable ${focusMode ? "focus-mode-active" : ""}`}
       />
-
-      {/* Word Count */}
-      <div className="mt-8 pt-4 border-t border-[#E6E4DD]">
-        <span className="word-count" data-testid="word-count">{wordCount} {wordCount === 1 ? "word" : "words"}</span>
-      </div>
     </div>
   );
 });

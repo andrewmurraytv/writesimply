@@ -46,6 +46,7 @@ export default function ArticleWorkspacePage() {
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [outlineMode, setOutlineMode] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -261,6 +262,9 @@ export default function ArticleWorkspacePage() {
         </div>
         <div className="flex items-center gap-2">
           <AmbientSound />
+          <span className="text-xs text-[#78716C] font-[Manrope] tabular-nums hidden sm:block" data-testid="word-count">
+            {wordCount} {wordCount === 1 ? "word" : "words"}
+          </span>
           <span className="save-indicator hidden sm:block">
             {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
           </span>
@@ -582,6 +586,7 @@ export default function ArticleWorkspacePage() {
               onChange={setArticleContent}
               articleId={id}
               focusMode={focusMode}
+              onWordCountChange={setWordCount}
             />
           </div>
         </div>
