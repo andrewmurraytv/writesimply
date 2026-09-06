@@ -706,30 +706,6 @@
   ],
   "niche_tags": [
     {
-      "tag": "Blogging",
-      "followers": 9000,
-      "stories": 63000,
-      "value": 0.14
-    },
-    {
-      "tag": "Personal Finance",
-      "followers": 10100,
-      "stories": 46000,
-      "value": 0.22
-    },
-    {
-      "tag": "Side Hustle",
-      "followers": 10300,
-      "stories": 37000,
-      "value": 0.28
-    },
-    {
-      "tag": "Passive Income",
-      "followers": 14000,
-      "stories": 34000,
-      "value": 0.41
-    },
-    {
       "tag": "Make Money Online",
       "followers": 26000,
       "stories": 52000,
@@ -742,10 +718,46 @@
       "value": 0.42
     },
     {
+      "tag": "Passive Income",
+      "followers": 14000,
+      "stories": 34000,
+      "value": 0.41
+    },
+    {
+      "tag": "Side Hustle",
+      "followers": 10300,
+      "stories": 37000,
+      "value": 0.28
+    },
+    {
       "tag": "Solopreneur",
       "followers": 2400,
       "stories": 10400,
       "value": 0.23
+    },
+    {
+      "tag": "Work From Home",
+      "followers": 4700,
+      "stories": 20000,
+      "value": 0.23
+    },
+    {
+      "tag": "Personal Finance",
+      "followers": 10100,
+      "stories": 46000,
+      "value": 0.22
+    },
+    {
+      "tag": "Digital Marketing",
+      "followers": 23000,
+      "stories": 110000,
+      "value": 0.209
+    },
+    {
+      "tag": "Reddit",
+      "followers": 836,
+      "stories": 5400,
+      "value": 0.155
     },
     {
       "tag": "Financial Freedom",
@@ -754,16 +766,40 @@
       "value": 0.15
     },
     {
+      "tag": "Blogging",
+      "followers": 9000,
+      "stories": 63000,
+      "value": 0.14
+    },
+    {
+      "tag": "Vibe Coding",
+      "followers": 1500,
+      "stories": 11400,
+      "value": 0.132
+    },
+    {
       "tag": "Online Business",
       "followers": 2300,
       "stories": 20000,
       "value": 0.12
     },
     {
-      "tag": "Work From Home",
-      "followers": 4700,
-      "stories": 20000,
-      "value": 0.23
+      "tag": "YouTube",
+      "followers": 4800,
+      "stories": 44000,
+      "value": 0.109
+    },
+    {
+      "tag": "Creator Economy",
+      "followers": 711,
+      "stories": 6900,
+      "value": 0.103
+    },
+    {
+      "tag": "Software",
+      "followers": 3300,
+      "stories": 38000,
+      "value": 0.087
     }
   ],
   "niche_note": "niche_tags were read directly from medium.com/tag/<slug> on the date below. They are ordinary tags, not official Medium Topics, so their follower bases are far smaller than the topic-level numbers in \"tags\" - compare ratios within a group, not across the two.",
