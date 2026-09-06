@@ -4,7 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, LogOut, FileText, Search } from "lucide-react";
+import { Plus, LogOut, FileText, Search, LayoutGrid, Columns3 } from "lucide-react";
+
+const NO_TAG = "No tag";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STATUSES = ["all", "idea", "draft", "ready", "published"];
@@ -24,6 +26,8 @@ export default function DashboardPage() {
   const [activeTag, setActiveTag] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingArticles, setLoadingArticles] = useState(true);
+  const [view, setView] = useState("grid");
+  const [dragOverTag, setDragOverTag] = useState(null);
 
   useEffect(() => {
     fetchArticles();
@@ -57,6 +61,34 @@ export default function DashboardPage() {
       return true;
     });
   }, [articles, activeStatus, activeTag, searchQuery]);
+
+  const kanbanColumns = useMemo(() => {
+    const cols = allTags.map((t) => ({
+      tag: t,
+      articles: filtered.filter((a) => (a.tags || []).includes(t)),
+    }));
+    const untagged = filtered.filter((a) => !(a.tags || []).length);
+    return untagged.length ? [...cols, { tag: NO_TAG, articles: untagged }] : cols;
+  }, [allTags, filtered]);
+
+  const moveArticleTag = async (article, fromTag, toTag) => {
+    if (fromTag === toTag) return;
+    const current = article.tags || [];
+    let nextTags = current.filter((t) => t !== fromTag);
+    if (toTag !== NO_TAG && !nextTags.includes(toTag)) nextTags = [...nextTags, toTag];
+    setArticles((prev) => prev.map((a) => (a.id === article.id ? { ...a, tags: nextTags } : a)));
+    try {
+      const res = await apiFetch(`${API}/articles/${article.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: nextTags }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      toast.error("Failed to move card");
+      setArticles((prev) => prev.map((a) => (a.id === article.id ? { ...a, tags: current } : a)));
+    }
+  };
 
   const createArticle = async () => {
     try {
@@ -125,8 +157,8 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 md:px-12 py-8">
         {/* Search */}
-        <div className="mb-6">
-          <div className="relative max-w-sm">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="relative max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A8A29E]" strokeWidth={1.5} />
             <input
               data-testid="search-input"
@@ -136,6 +168,24 @@ export default function DashboardPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-[#E6E4DD] rounded-md font-[Manrope] focus:outline-none focus:ring-1 focus:ring-[#1F1E1D] placeholder:text-[#A8A29E]"
             />
+          </div>
+          <div className="flex items-center gap-1 bg-[#F0EFEB] rounded-md p-1 shrink-0">
+            <button
+              data-testid="view-grid-button"
+              onClick={() => setView("grid")}
+              title="Grid view"
+              className={`p-1.5 rounded-sm transition-colors ${view === "grid" ? "bg-white text-[#1F1E1D] shadow-sm" : "text-[#78716C] hover:text-[#1F1E1D]"}`}
+            >
+              <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <button
+              data-testid="view-board-button"
+              onClick={() => setView("board")}
+              title="Kanban board (by tag)"
+              className={`p-1.5 rounded-sm transition-colors ${view === "board" ? "bg-white text-[#1F1E1D] shadow-sm" : "text-[#78716C] hover:text-[#1F1E1D]"}`}
+            >
+              <Columns3 className="w-4 h-4" strokeWidth={1.5} />
+            </button>
           </div>
         </div>
 
@@ -158,7 +208,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Tag Filter */}
-        {allTags.length > 0 && (
+        {view === "grid" && allTags.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mb-8" data-testid="tag-filter-bar">
             <span className="text-xs text-[#78716C] font-[Manrope] mr-1">Tags:</span>
             <button
@@ -181,7 +231,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Articles Grid */}
+        {/* Empty state (shared by both views) */}
         {loadingArticles ? (
           <div className="text-sm text-[#78716C] font-[Manrope]">Loading articles...</div>
         ) : filtered.length === 0 ? (
@@ -201,6 +251,71 @@ export default function DashboardPage() {
               </Button>
             )}
           </div>
+        ) : view === "board" ? (
+          allTags.length === 0 ? (
+            <div className="text-center py-20" data-testid="board-no-tags">
+              <Columns3 className="w-12 h-12 text-[#E6E4DD] mx-auto mb-4" strokeWidth={1} />
+              <p className="text-[#78716C] font-[Manrope] text-sm">
+                Add tags to your articles to organize them as board columns.
+              </p>
+            </div>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-4" data-testid="kanban-board">
+              {kanbanColumns.map((col) => (
+                <div
+                  key={col.tag}
+                  data-testid={`kanban-column-${col.tag}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverTag(col.tag); }}
+                  onDragLeave={() => setDragOverTag((t) => (t === col.tag ? null : t))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverTag(null);
+                    const articleId = e.dataTransfer.getData("articleId");
+                    const fromTag = e.dataTransfer.getData("fromTag");
+                    const article = articles.find((a) => a.id === articleId);
+                    if (article) moveArticleTag(article, fromTag, col.tag);
+                  }}
+                  className={`shrink-0 w-72 rounded-lg border transition-colors ${
+                    dragOverTag === col.tag ? "border-[#C96442] bg-[#FCEEE8]" : "border-[#E6E4DD] bg-[#F0EFEB]"
+                  }`}
+                >
+                  <div className="px-3 py-2.5 border-b border-[#E6E4DD] flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#1F1E1D] font-[Manrope] uppercase tracking-wider">
+                      {col.tag}
+                    </span>
+                    <span className="text-[0.625rem] text-[#A8A29E] font-[Manrope]">{col.articles.length}</span>
+                  </div>
+                  <div className="p-2 space-y-2 min-h-[80px]">
+                    {col.articles.map((article) => (
+                      <div
+                        key={article.id}
+                        draggable
+                        data-testid={`kanban-card-${article.id}`}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("articleId", article.id);
+                          e.dataTransfer.setData("fromTag", col.tag);
+                        }}
+                        onClick={() => navigate(`/articles/${article.id}`)}
+                        className="p-3 bg-[#FCFBF8] border border-[#E6E4DD] rounded-md cursor-grab active:cursor-grabbing hover:bg-white transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <h4 className="text-sm font-bold text-[#1F1E1D] font-[Manrope] leading-snug line-clamp-2">
+                            {article.title || "Untitled"}
+                          </h4>
+                          <Badge className={`${statusStyles[article.status] || "status-idea"} shrink-0 text-[0.6rem] px-1.5 py-0.5 rounded-full border-0`}>
+                            {article.status}
+                          </Badge>
+                        </div>
+                        {article.notes && (
+                          <p className="text-xs text-[#78716C] font-[Manrope] line-clamp-2">{article.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="articles-grid">
             {filtered.map((article) => (
