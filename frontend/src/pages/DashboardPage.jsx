@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, LogOut, FileText, Search, LayoutGrid, Columns3 } from "lucide-react";
+import { Plus, LogOut, FileText, Search, LayoutGrid, Columns3, Trash2 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STATUSES = ["all", "idea", "draft", "ready", "published"];
@@ -98,6 +98,24 @@ export default function DashboardPage() {
       }
     } catch {
       toast.error("Failed to create article");
+    }
+  };
+
+  // The card is a click target that opens the article, so the delete button has to
+  // stop propagation or removing a card would also navigate into it.
+  const deleteArticle = async (e, article) => {
+    e.stopPropagation();
+    const label = article.title || "Untitled";
+    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
+    const prev = articles;
+    setArticles((list) => list.filter((a) => a.id !== article.id));
+    try {
+      const res = await apiFetch(`${API}/articles/${article.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Deleted");
+    } catch {
+      toast.error("Failed to delete");
+      setArticles(prev);
     }
   };
 
@@ -298,9 +316,21 @@ export default function DashboardPage() {
                       onClick={() => navigate(`/articles/${article.id}`)}
                       className="p-3 bg-[#FCFBF8] border border-[#E6E4DD] rounded-md cursor-grab active:cursor-grabbing hover:bg-white transition-colors"
                     >
-                      <h4 className="text-sm font-bold text-[#1F1E1D] font-[Manrope] leading-snug line-clamp-2 mb-1.5">
-                        {article.title || "Untitled"}
-                      </h4>
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <h4 className="text-sm font-bold text-[#1F1E1D] font-[Manrope] leading-snug line-clamp-2">
+                          {article.title || "Untitled"}
+                        </h4>
+                        <button
+                          type="button"
+                          title="Delete"
+                          aria-label={`Delete ${article.title || "Untitled"}`}
+                          data-testid={`delete-article-${article.id}`}
+                          onClick={(e) => deleteArticle(e, article)}
+                          className="shrink-0 p-1 -m-1 rounded text-[#A8A29E] hover:text-[#C96442] hover:bg-[#FCEEE8] transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        </button>
+                      </div>
                       {article.notes && (
                         <p className="text-xs text-[#78716C] font-[Manrope] line-clamp-2 mb-1.5">{article.notes}</p>
                       )}
@@ -320,21 +350,36 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="articles-grid">
             {filtered.map((article) => (
-              <button
+              <div
                 key={article.id}
+                role="button"
+                tabIndex={0}
                 draggable
                 data-testid={`article-card-${article.id}`}
                 onDragStart={(e) => { e.dataTransfer.setData("articleId", article.id); }}
                 onClick={() => navigate(`/articles/${article.id}`)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/articles/${article.id}`); } }}
                 className="text-left p-6 bg-[#FCFBF8] border border-[#E6E4DD] rounded-lg hover:bg-[#F0EFEB] transition-colors cursor-grab active:cursor-grabbing"
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <h3 className="font-bold text-[#1F1E1D] font-[Manrope] leading-snug line-clamp-2">
                     {article.title || "Untitled"}
                   </h3>
-                  <Badge className={`${statusStyles[article.status] || "status-idea"} shrink-0 text-[0.625rem] px-2 py-0.5 rounded-full border-0`}>
-                    {article.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge className={`${statusStyles[article.status] || "status-idea"} text-[0.625rem] px-2 py-0.5 rounded-full border-0`}>
+                      {article.status}
+                    </Badge>
+                    <button
+                      type="button"
+                      title="Delete"
+                      aria-label={`Delete ${article.title || "Untitled"}`}
+                      data-testid={`delete-article-${article.id}`}
+                      onClick={(e) => deleteArticle(e, article)}
+                      className="p-1 rounded text-[#A8A29E] hover:text-[#C96442] hover:bg-[#FCEEE8] transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                    </button>
+                  </div>
                 </div>
                 {article.notes && (
                   <p className="text-xs text-[#78716C] font-[Manrope] line-clamp-2 mb-3">
@@ -354,7 +399,7 @@ export default function DashboardPage() {
                     {formatDate(article.updated_at)}
                   </span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2, BarChart3, Code } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2, BarChart3, Code, Trash2 } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -92,6 +92,20 @@ export default function ArticleWorkspacePage() {
   useEffect(() => {
     if (article) hasChangesRef.current = true;
   }, [title, subheadline, notes, articleContent, status, tags, referenceLinks, screenshotPaths]);
+
+  const deleteArticle = async () => {
+    if (!window.confirm(`Delete "${title || "Untitled"}"? This cannot be undone.`)) return;
+    try {
+      const res = await apiFetch(`${API}/articles/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      // Suppress the unload/back autosave so a save can't resurrect the deleted doc.
+      hasChangesRef.current = false;
+      toast.success("Deleted");
+      navigate("/");
+    } catch {
+      toast.error("Failed to delete");
+    }
+  };
 
   const saveArticle = useCallback(async (isAutoSave = false) => {
     if (!article) return;
@@ -402,6 +416,16 @@ export default function ArticleWorkspacePage() {
           >
             <Save className="w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
             Save
+          </Button>
+          <Button
+            data-testid="delete-article-button"
+            onClick={deleteArticle}
+            variant="ghost"
+            size="icon"
+            title="Delete this article"
+            className="text-[#A8A29E] hover:text-[#C96442] hover:bg-[#FCEEE8] h-8 w-8"
+          >
+            <Trash2 className="w-4 h-4" strokeWidth={1.5} />
           </Button>
           <Button
             data-testid="open-prompts-drawer"
