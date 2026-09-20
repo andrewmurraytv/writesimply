@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2, BarChart3, Code, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, X, Plus, Link as LinkIcon, PanelLeftClose, PanelLeft, ClipboardCopy, FileText, ChevronDown, Focus, ListTree, Wand2, BarChart3, Code, Trash2, Lightbulb } from "lucide-react";
 import PromptDrawer from "@/components/PromptDrawer";
 import ScreenshotUploader from "@/components/ScreenshotUploader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -48,6 +48,8 @@ export default function ArticleWorkspacePage() {
   const [outlineMode, setOutlineMode] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [suggesting, setSuggesting] = useState(false);
+  const [expanding, setExpanding] = useState(false);
+  const [expansion, setExpansion] = useState(null);
   const [suggestions, setSuggestions] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showTagBrowser, setShowTagBrowser] = useState(false);
@@ -150,6 +152,59 @@ export default function ArticleWorkspacePage() {
   const removeTag = (tag) => setTags(tags.filter((t) => t !== tag));
 
   // AI suggestions (headline / subheadline / tags)
+  const expandIdea = async () => {
+    const seed = notes.trim();
+    if (!seed) {
+      toast.error("Type an idea in Notes first");
+      return;
+    }
+    setExpanding(true);
+    try {
+      const res = await apiFetch(`${API}/articles/${id}/expand-idea`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed");
+      }
+      setExpansion(await res.json());
+    } catch (e) {
+      toast.error(e.message || "Could not expand that idea");
+    } finally {
+      setExpanding(false);
+    }
+  };
+
+  // Rendered as plain text so it lands in Notes (a textarea) readably, and so a
+  // writer can edit it in place rather than being handed a fixed block.
+  const expansionAsText = (x) =>
+    [
+      `ANGLE: ${x.angle || ""}`,
+      x.why_now ? `WHY NOW: ${x.why_now}` : "",
+      "",
+      "OUTLINE",
+      ...(x.outline || []).flatMap((sec) => [
+        `- ${sec.heading}`,
+        ...(sec.points || []).map((pt) => `    - ${pt}`),
+      ]),
+      "",
+      ...((x.hooks || []).length ? ["HOOKS", ...x.hooks.map((h) => `- ${h}`), ""] : []),
+      ...((x.questions || []).length ? ["OPEN QUESTIONS", ...x.questions.map((q) => `- ${q}`)] : []),
+    ]
+      .filter((line) => line !== undefined)
+      .join("\n")
+      .trim();
+
+  const appendExpansionToNotes = () => {
+    // Appended, never overwritten - the seed the writer typed is the one thing
+    // here that came from them.
+    setNotes((n) => `${n.trim()}\n\n${expansionAsText(expansion)}\n`);
+    setExpansion(null);
+    toast.success("Added to notes");
+  };
+
   const requestSuggestions = async () => {
     setSuggesting(true);
     try {
@@ -457,6 +512,7 @@ export default function ArticleWorkspacePage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onFocus={() => { if (title.trim().toLowerCase() === "untitled") setTitle(""); }}
                 placeholder="Article title..."
                 className="scratchpad-title"
               />
@@ -477,7 +533,18 @@ export default function ArticleWorkspacePage() {
 
             {/* Notes */}
             <div>
-              <label className="block text-xs font-medium text-[#78716C] mb-1.5 font-[Manrope] uppercase tracking-wider">Notes</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-[#78716C] font-[Manrope] uppercase tracking-wider">Notes</label>
+                <button
+                  data-testid="expand-idea-button"
+                  onClick={expandIdea}
+                  disabled={expanding || !notes.trim()}
+                  title="Turn what's in Notes into an angle, an outline and open questions"
+                  className="text-xs text-[#C96442] hover:text-[#A8502F] font-[Manrope] font-medium flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Lightbulb className="w-3 h-3" /> {expanding ? "Thinking..." : "Flesh out"}
+                </button>
+              </div>
               <textarea
                 data-testid="scratchpad-notes"
                 value={notes}
@@ -486,6 +553,83 @@ export default function ArticleWorkspacePage() {
                 className="scratchpad-notes"
                 rows={6}
               />
+
+              {expansion && (
+                <div
+                  data-testid="idea-expansion"
+                  className="mt-3 p-3 bg-white border border-[#E6E4DD] rounded-md space-y-3 text-xs font-[Manrope]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[#1F1E1D] leading-snug font-medium">{expansion.angle}</p>
+                    <button
+                      onClick={() => setExpansion(null)}
+                      aria-label="Dismiss"
+                      className="shrink-0 text-[#A8A29E] hover:text-[#1F1E1D]"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {expansion.why_now && (
+                    <p className="text-[#78716C] leading-snug">{expansion.why_now}</p>
+                  )}
+
+                  {(expansion.outline || []).length > 0 && (
+                    <div>
+                      <p className="text-[0.625rem] uppercase tracking-wider text-[#A8A29E] mb-1">Outline</p>
+                      <ol className="space-y-1.5 list-decimal list-inside">
+                        {expansion.outline.map((sec, i) => (
+                          <li key={i} className="text-[#1F1E1D] leading-snug">
+                            {sec.heading}
+                            {(sec.points || []).length > 0 && (
+                              <ul className="mt-0.5 ml-4 space-y-0.5 list-disc list-outside text-[#78716C]">
+                                {sec.points.map((pt, j) => <li key={j} className="leading-snug">{pt}</li>)}
+                              </ul>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {(expansion.hooks || []).length > 0 && (
+                    <div>
+                      <p className="text-[0.625rem] uppercase tracking-wider text-[#A8A29E] mb-1">Opening lines</p>
+                      <ul className="space-y-1 list-disc list-outside ml-4 text-[#78716C]">
+                        {expansion.hooks.map((h, i) => <li key={i} className="leading-snug">{h}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  {(expansion.questions || []).length > 0 && (
+                    <div>
+                      <p className="text-[0.625rem] uppercase tracking-wider text-[#A8A29E] mb-1">You still need to decide</p>
+                      <ul className="space-y-1 list-disc list-outside ml-4 text-[#78716C]">
+                        {expansion.questions.map((q, i) => <li key={i} className="leading-snug">{q}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      data-testid="append-expansion"
+                      size="sm"
+                      onClick={appendExpansionToNotes}
+                      className="bg-[#1F1E1D] text-[#FAF9F5] hover:bg-[#1F1E1D]/90 text-xs font-[Manrope] h-7"
+                    >
+                      Add to notes
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={expandIdea}
+                      disabled={expanding}
+                      className="text-xs font-[Manrope] h-7 text-[#78716C]"
+                    >
+                      Try again
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Reference Links */}

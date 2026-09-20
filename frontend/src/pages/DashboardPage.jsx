@@ -90,7 +90,10 @@ export default function DashboardPage() {
       const res = await apiFetch(`${API}/articles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Untitled" }),
+        // Empty, not the literal "Untitled" - the cards already fall back to
+        // "Untitled" for display, so storing it only makes the title field
+        // something you have to clear before you can type.
+        body: JSON.stringify({ title: "" }),
       });
       if (res.ok) {
         const article = await res.json();

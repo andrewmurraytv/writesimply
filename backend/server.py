@@ -344,6 +344,109 @@ async def update_article(article_id: str, input: ArticleUpdate, request: Request
     article = await db.articles.find_one({"id": article_id}, {"_id": 0})
     return article
 
+class ExpandIdeaInput(BaseModel):
+    seed: str
+    audience: Optional[str] = None
+
+
+def _claude_json(prompt: str, max_tokens: int = 2048):
+    """Call Claude and parse a JSON object out of the reply.
+
+    Shared by the metadata and idea-expansion endpoints so both get the same
+    fence-stripping and the same stop_reason handling - a truncated reply and a
+    reply that simply isn't JSON look identical without it.
+    """
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="AI is not configured. Set ANTHROPIC_API_KEY in backend/.env.")
+    try:
+        resp = http_requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": ANTHROPIC_MODEL,
+                "max_tokens": max_tokens,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=90,
+        )
+        resp.raise_for_status()
+    except http_requests.exceptions.RequestException as e:
+        logger.error(f"Anthropic API call failed: {e}")
+        raise HTTPException(status_code=502, detail="AI request failed. Please try again.")
+
+    data = resp.json()
+    raw_text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text").strip()
+    raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text.strip())
+    try:
+        return json.loads(raw_text)
+    except json.JSONDecodeError:
+        stop = data.get("stop_reason")
+        logger.error(f"Could not parse Claude response as JSON (stop_reason={stop}): {raw_text[:500]}")
+        if stop == "max_tokens":
+            raise HTTPException(status_code=502, detail="AI response was cut off. Please try again.")
+        raise HTTPException(status_code=502, detail="AI response could not be parsed. Please try again.")
+
+
+@api_router.post("/articles/{article_id}/expand-idea")
+async def expand_idea(article_id: str, input: ExpandIdeaInput, request: Request):
+    """Turn a one- or two-line idea into an angle, an outline and open questions.
+
+    The seed comes from the request rather than the stored notes so the writer can
+    expand a line they have just typed without saving first.
+    """
+    user = await get_current_user(request)
+    article = await db.articles.find_one({"id": article_id, "user_id": user["_id"]}, {"_id": 0})
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    seed = (input.seed or "").strip()
+    if not seed:
+        raise HTTPException(status_code=400, detail="Type an idea first, then expand it.")
+
+    audience = (input.audience or "").strip() or (
+        "people trying to earn income online - side hustles, solopreneurs, "
+        "creators and developers building small software products"
+    )
+    title = (article.get("title") or "").strip()
+    title_line = f"Working title: {title}\n" if title and title.lower() != "untitled" else ""
+
+    prompt = f"""A writer has jotted down a rough idea for a Medium article. Flesh it out
+so they can start drafting - do not write the article itself.
+
+{title_line}The idea, exactly as typed:
+{seed[:4000]}
+
+Audience: {audience}
+
+Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape:
+{{
+  "angle": "one or two sentences naming the specific argument this piece should make",
+  "why_now": "one sentence on why a reader would care about this right now",
+  "outline": [
+    {{"heading": "section heading", "points": ["beat 1", "beat 2"]}}
+  ],
+  "hooks": ["opening line option 1", "opening line option 2"],
+  "questions": ["something the writer needs to decide or research"]
+}}
+
+Rules:
+- angle: sharpen the idea into a claim with a point of view, not a topic restatement.
+- outline: 4 to 6 sections in reading order, each with 2 or 3 concrete beats. Include
+  where a personal example, a number or a screenshot would carry the section.
+- hooks: 2 opening lines in the writer's plain, direct register - no throat-clearing,
+  no "In today's fast-paced world".
+- questions: 2 to 4 genuine gaps - what the writer must supply from their own
+  experience, or look up, before this piece can be honest.
+- Stay inside the idea as typed. Do not swap it for an adjacent, easier subject."""
+
+    result = _claude_json(prompt, max_tokens=2048)
+    return result
+
+
 @api_router.post("/articles/{article_id}/suggest-metadata")
 async def suggest_metadata(article_id: str, request: Request):
     user = await get_current_user(request)
