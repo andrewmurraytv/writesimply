@@ -145,9 +145,14 @@ export default function DashboardPage() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-[#78716C] font-[Manrope] hidden sm:block">
+            <button
+              data-testid="account-link"
+              onClick={() => navigate("/account")}
+              title="Account and AI usage"
+              className="text-sm text-[#78716C] hover:text-[#1F1E1D] font-[Manrope] hidden sm:block transition-colors"
+            >
               {user?.name || user?.email}
-            </span>
+            </button>
             <Button
               data-testid="new-article-button"
               onClick={createArticle}

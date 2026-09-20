@@ -349,6 +349,48 @@ class ExpandIdeaInput(BaseModel):
     audience: Optional[str] = None
 
 
+# USD per million tokens, from Anthropic's published API pricing (2026-09).
+# A model missing here records zero cost rather than guessing a rate - a wrong
+# number shown confidently is worse than an obvious gap.
+MODEL_PRICING = {
+    "claude-opus-5": {"input": 5.00, "output": 25.00},
+    "claude-opus-4-8": {"input": 5.00, "output": 25.00},
+    "claude-sonnet-5": {"input": 2.00, "output": 10.00},
+    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
+    "claude-haiku-4-5": {"input": 1.00, "output": 5.00},
+}
+
+
+def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+    rates = MODEL_PRICING.get(model)
+    if not rates:
+        return 0.0
+    return (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1_000_000
+
+
+async def record_usage(user_id, feature: str, model: str, usage: dict):
+    """Log one AI call so the account page can total what it cost.
+
+    Never allowed to fail the request it is measuring - a bookkeeping error
+    must not lose the writer the suggestions they just paid for.
+    """
+    try:
+        input_tokens = int(usage.get("input_tokens") or 0)
+        output_tokens = int(usage.get("output_tokens") or 0)
+        await db.ai_usage.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "feature": feature,
+            "model": model,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cost_usd": estimate_cost(model, input_tokens, output_tokens),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as e:
+        logger.error(f"Failed to record AI usage: {e}")
+
+
 def _claude_json(prompt: str, max_tokens: int = 2048):
     """Call Claude and parse a JSON object out of the reply.
 
@@ -382,7 +424,7 @@ def _claude_json(prompt: str, max_tokens: int = 2048):
     raw_text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text").strip()
     raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text.strip())
     try:
-        return json.loads(raw_text)
+        return json.loads(raw_text), data.get("usage") or {}
     except json.JSONDecodeError:
         stop = data.get("stop_reason")
         logger.error(f"Could not parse Claude response as JSON (stop_reason={stop}): {raw_text[:500]}")
@@ -443,7 +485,8 @@ Rules:
   experience, or look up, before this piece can be honest.
 - Stay inside the idea as typed. Do not swap it for an adjacent, easier subject."""
 
-    result = _claude_json(prompt, max_tokens=2048)
+    result, usage = _claude_json(prompt, max_tokens=2048)
+    await record_usage(user["_id"], "expand-idea", ANTHROPIC_MODEL, usage)
     return result
 
 
@@ -513,39 +556,8 @@ Rules:
 - All tags follow Medium conventions: 1-3 words, Title Case, no hashtags, no repeats
   across the two lists."""
 
-    try:
-        resp = http_requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": ANTHROPIC_MODEL,
-                "max_tokens": 2048,
-                "messages": [{"role": "user", "content": prompt}],
-            },
-            timeout=60,
-        )
-        resp.raise_for_status()
-    except http_requests.exceptions.RequestException as e:
-        logger.error(f"Anthropic API call failed: {e}")
-        raise HTTPException(status_code=502, detail="AI suggestion request failed. Please try again.")
-
-    data = resp.json()
-    raw_text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text").strip()
-    raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text.strip())
-    try:
-        suggestions = json.loads(raw_text)
-    except json.JSONDecodeError:
-        # stop_reason distinguishes "ran out of tokens mid-JSON" from "wrote
-        # something that isn't JSON" - without it the two look identical here.
-        stop = data.get("stop_reason")
-        logger.error(f"Could not parse Claude response as JSON (stop_reason={stop}): {raw_text[:500]}")
-        if stop == "max_tokens":
-            raise HTTPException(status_code=502, detail="AI response was cut off. Please try again.")
-        raise HTTPException(status_code=502, detail="AI response could not be parsed. Please try again.")
+    suggestions, usage = _claude_json(prompt, max_tokens=2048)
+    await record_usage(user["_id"], "suggest-metadata", ANTHROPIC_MODEL, usage)
 
     # Attach real audience numbers so the UI can show the volume mix rather than
     # asking the user to trust the model's sense of how big a tag is.
@@ -559,6 +571,41 @@ Rules:
         "snapshot_date": MEDIUM_TAG_DATA.get("snapshot_date"),
     }
     return suggestions
+
+@api_router.get("/usage")
+async def get_usage(request: Request):
+    """Estimated AI spend for the signed-in user.
+
+    Estimated, not billed: it prices the tokens Anthropic reported for each call
+    against the published per-model rates. It can't see prompt-cache discounts,
+    anything spent outside this app, or a rate change since the table was
+    written, so treat it as a close guide rather than an invoice.
+    """
+    user = await get_current_user(request)
+    rows = await db.ai_usage.find({"user_id": user["_id"]}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+
+    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+    def totals(items):
+        return {
+            "calls": len(items),
+            "input_tokens": sum(r.get("input_tokens", 0) for r in items),
+            "output_tokens": sum(r.get("output_tokens", 0) for r in items),
+            "cost_usd": round(sum(r.get("cost_usd", 0.0) for r in items), 6),
+        }
+
+    by_feature = {}
+    for r in rows:
+        by_feature.setdefault(r.get("feature", "unknown"), []).append(r)
+
+    return {
+        "model": ANTHROPIC_MODEL,
+        "rates": MODEL_PRICING.get(ANTHROPIC_MODEL),
+        "all_time": totals(rows),
+        "this_month": totals([r for r in rows if r.get("created_at", "") >= month_start]),
+        "by_feature": {k: totals(v) for k, v in sorted(by_feature.items())},
+        "recent": rows[:20],
+    }
 
 @api_router.delete("/articles/{article_id}")
 async def delete_article(article_id: str, request: Request):
