@@ -373,42 +373,42 @@ export default function ArticleWorkspacePage() {
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
           </Button>
-          <Button
-            data-testid="toggle-panel"
-            variant="ghost"
-            size="icon"
-            onClick={() => setPanelCollapsed(!panelCollapsed)}
-            className="text-[#78716C] hover:text-[#1F1E1D] h-8 w-8"
-            title={panelCollapsed ? "Show scratchpad" : "Hide scratchpad"}
-          >
-            {panelCollapsed ? <PanelLeft className="w-4 h-4" strokeWidth={1.5} /> : <PanelLeftClose className="w-4 h-4" strokeWidth={1.5} />}
-          </Button>
           <span className="text-sm font-medium text-[#1F1E1D] font-[Manrope] truncate max-w-[200px]">
             {title || "Untitled"}
           </span>
-          <div className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-[#E6E4DD]">
-            <PomodoroTimer />
-          </div>
         </div>
         <div className="flex items-center gap-2">
-          <AmbientSound />
-          <span className="text-xs text-[#78716C] font-[Manrope] tabular-nums hidden sm:block" data-testid="word-count">
-            {wordCount} {wordCount === 1 ? "word" : "words"}
-          </span>
-          <span className="save-indicator hidden sm:block">
-            {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
-          </span>
-          <Button
-            data-testid="toggle-focus-mode"
-            variant="ghost"
-            size="sm"
-            onClick={() => setFocusMode(!focusMode)}
-            className={`font-[Manrope] text-xs hidden sm:flex h-8 ${focusMode ? "bg-[#1F1E1D] text-[#FAF9F5] hover:bg-[#1F1E1D]/90" : "text-[#78716C] hover:text-[#1F1E1D]"}`}
-            title="Toggle focus mode"
+          {/* Writing environment - the four controls that change how the room
+              feels rather than what happens to the document. Grouped so the bar
+              reads as two things (environment, then document actions) instead
+              of eight scattered buttons. */}
+          <div
+            data-testid="writing-tools"
+            className="flex items-center gap-0.5 p-0.5 rounded-md bg-[#F0EFEB] border border-[#E6E4DD]"
           >
-            <Focus className="w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
-            Focus
-          </Button>
+            <Button
+              data-testid="toggle-panel"
+              variant="ghost"
+              size="icon"
+              onClick={() => setPanelCollapsed(!panelCollapsed)}
+              className="text-[#78716C] hover:text-[#1F1E1D] hover:bg-[#FCFBF8] h-7 w-7"
+              title={panelCollapsed ? "Show scratchpad" : "Hide scratchpad"}
+            >
+              {panelCollapsed ? <PanelLeft className="w-4 h-4" strokeWidth={1.5} /> : <PanelLeftClose className="w-4 h-4" strokeWidth={1.5} />}
+            </Button>
+            <Button
+              data-testid="toggle-focus-mode"
+              variant="ghost"
+              size="icon"
+              onClick={() => setFocusMode(!focusMode)}
+              className={`h-7 w-7 ${focusMode ? "bg-[#1F1E1D] text-[#FAF9F5] hover:bg-[#1F1E1D]/90 hover:text-[#FAF9F5]" : "text-[#78716C] hover:text-[#1F1E1D] hover:bg-[#FCFBF8]"}`}
+              title={focusMode ? "Focus mode on - dims every block but the one you're in" : "Focus mode - dim everything but the current block"}
+            >
+              <Focus className="w-4 h-4" strokeWidth={1.5} />
+            </Button>
+            <PomodoroTimer />
+            <AmbientSound />
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -929,6 +929,7 @@ export default function ArticleWorkspacePage() {
               data-testid="editor-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onFocus={() => { if (title.trim().toLowerCase() === "untitled") setTitle(""); }}
               placeholder="Title"
               className="editor-title mb-8"
               rows={1}
@@ -944,6 +945,25 @@ export default function ArticleWorkspacePage() {
               focusMode={focusMode}
               onWordCountChange={setWordCount}
             />
+
+            {/* Status lives at the foot of the page you're writing on, not in the
+                top bar - it's something you glance down at, not something that
+                should sit in your eyeline while drafting. */}
+            <footer
+              data-testid="editor-status"
+              className="mt-10 pt-3 border-t border-[#E6E4DD] flex items-center justify-between text-[0.6875rem] text-[#A8A29E] font-[Manrope] tabular-nums"
+            >
+              <span data-testid="word-count">
+                {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
+              </span>
+              <span data-testid="save-status">
+                {saving
+                  ? "Saving..."
+                  : lastSaved
+                  ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                  : ""}
+              </span>
+            </footer>
           </div>
         </div>
       </div>
